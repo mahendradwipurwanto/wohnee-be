@@ -32,7 +32,6 @@ logs/
 .env.backup
 
 # Sensitive credentials (Google / AWS / Keys)
-*.pem
 *.key
 *.crt
 *.p12
