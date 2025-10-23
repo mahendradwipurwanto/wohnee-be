@@ -1,0 +1,74 @@
+############################################################
+# 🧩 NODE & DEPENDENCIES
+############################################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+.pnpm-store/
+
+############################################################
+# 🏗️ BUILD & OUTPUT FILES
+############################################################
+dist/
+build/
+coverage/
+.tmp/
+.temp/
+logs/
+*.log
+
+############################################################
+# ⚙️ ENVIRONMENT & CONFIG FILES
+############################################################
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.example
+.env.backup
+
+# Sensitive credentials (Google / AWS / Keys)
+*.pem
+*.key
+*.crt
+*.p12
+*.json
+config/google-credentials.json
+src/lib/credentials/
+cred*.json
+credentials.json
+
+############################################################
+# 💾 DATABASE & MIGRATION TEMP FILES
+############################################################
+*.sqlite
+*.sqlite3
+typeorm-cache/
+typeorm-migrations.log
+
+############################################################
+# 💻 OS / EDITOR CONFIG
+############################################################
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
+
+############################################################
+# 🧪 TESTING
+############################################################
+jest-report/
+reports/
+test-results.xml
+
+############################################################
+# 🪶 BUILD TOOLS / TEMP FILES
+############################################################
+.cache/
+.eslintcache
+.nyc_output/
+tsconfig.tsbuildinfo
