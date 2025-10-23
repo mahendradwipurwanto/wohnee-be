@@ -36,7 +36,6 @@ logs/
 *.key
 *.crt
 *.p12
-*.json
 config/google-credentials.json
 src/lib/credentials/
 cred*.json
