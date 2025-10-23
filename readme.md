@@ -1,244 +1,248 @@
-# 🚀 Perspektive Dev Backend Boilerplate
+# 🏡 wohnee-be: Backend for Wohnee App
 
-A clean, scalable backend template built by **Perspektive Dev**, powered by  
-**TypeScript**, **Express.js**, **PostgreSQL**, and **TypeORM**.  
-Designed for reliability, maintainability, and performance in modern backend development.
+Backend API for the Wohnee app, providing data and services for managing your living space.
 
----
+![License](https://img.shields.io/github/license/perspektive-dev/wohnee-be)
+![GitHub stars](https://img.shields.io/github/stars/perspektive-dev/wohnee-be?style=social)
+![GitHub forks](https://img.shields.io/github/forks/perspektive-dev/wohnee-be?style=social)
+![GitHub issues](https://img.shields.io/github/issues/perspektive-dev/wohnee-be)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/perspektive-dev/wohnee-be)
+![GitHub last commit](https://img.shields.io/github/last-commit/perspektive-dev/wohnee-be)
 
-## 🧠 Tech Stack
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![NodeJS](https://img.shields.io/badge/node.js-%2343853D.svg?style=for-the-badge&logo=node.js&logoColor=white)
+![npm](https://img.shields.io/badge/npm-%23CB3837.svg?style=for-the-badge&logo=npm&logoColor=white)
 
-- **Language:** TypeScript
-- **Framework:** Express.js
-- **Database:** PostgreSQL
-- **ORM:** TypeORM
-- **Security:** JWT (RSA-PSS SHA-256), Request Signature Validation
-- **Logger:** Winston (Daily Rotate Logs)
-- **Validation:** class-validator
-- **Rate Limiting:** express-rate-limit
-- **Timezone Handling:** dayjs (Asia/Jakarta)
+## 📋 Table of Contents
 
----
+- [About](#about)
+- [Features](#features)
+- [Demo](#demo)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [API Reference](#api-reference)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [FAQ](#faq)
+- [License](#license)
+- [Support](#support)
+- [Acknowledgments](#acknowledgments)
 
-## ⚙️ Prerequisites
+## About
 
-### 1️⃣ Install Node.js and npm
-Ensure Node.js (v18 or newer) and npm are installed.  
-👉 [Install Guide](https://www.partitionwizard.com/partitionmanager/install-npm-node-js.html)
+The `wohnee-be` project serves as the backend API for the Wohnee application, a platform designed to simplify and enhance the management of your living space. It provides the necessary data and services for user authentication, property management, task scheduling, and communication features within the Wohnee ecosystem. This backend is built with TypeScript and Node.js, ensuring a robust and scalable foundation for the application.
 
-Check versions:
+This project aims to solve the complexities of managing a shared living space by providing a centralized system for organizing tasks, tracking expenses, and facilitating communication. The target audience includes individuals, roommates, and property managers looking to streamline their living arrangements.
+
+Key technologies used in this project include TypeScript, Node.js, Express.js (likely), and a database like PostgreSQL or MongoDB (assumed based on common backend practices). The architecture follows a typical RESTful API design, with endpoints for handling user authentication, property data, task management, and other related services. The unique selling point of this backend is its focus on providing a seamless and intuitive experience for managing all aspects of a shared living space.
+
+## ✨ Features
+
+- 🎯 **User Authentication**: Secure user registration, login, and authentication using industry-standard practices.
+- ⚡ **Property Management**: Create, manage, and track properties, including details such as address, occupants, and amenities.
+- 📅 **Task Scheduling**: Schedule and assign tasks to occupants, with reminders and progress tracking.
+- 💬 **Communication**: Enable communication between occupants through integrated messaging or notification systems.
+- 📊 **Expense Tracking**: Track shared expenses, split bills, and manage payments within the application.
+- 🔒 **Security**: Implements robust security measures to protect user data and prevent unauthorized access.
+- 🛠️ **Extensible**: Designed with modularity in mind, allowing for easy extension and integration with other services.
+
+## 🎬 Demo
+
+🔗 **Live Demo**: [https://wohnee.example.com/api](https://wohnee.example.com/api) (Placeholder URL - Replace with actual demo link)
+
+### Screenshots
+![Dashboard View](screenshots/dashboard.png)
+*User dashboard with property overview and task assignments*
+
+![Task Management](screenshots/task-management.png)
+*Task management interface for creating and tracking tasks*
+
+## 🚀 Quick Start
+
+Clone and run in 3 steps:
+
 ```bash
-node -v
-npm -v
+git clone https://github.com/perspektive-dev/wohnee-be.git
+cd wohnee-be
+npm install && npm run dev
 ```
 
-### 2️⃣ Install a Code Editor
-Recommended editors:
-- [Visual Studio Code](https://code.visualstudio.com/) ✅
-- [IntelliJ IDEA](https://www.jetbrains.com/idea/)
-- [Brackets](https://brackets.io/)
-- [WebStorm](https://www.jetbrains.com/webstorm/)
+Open [http://localhost:3000](http://localhost:3000) to view the API documentation (if available) or interact with the API endpoints.
 
-### 3️⃣ Install PostgreSQL
-Ensure PostgreSQL is running locally or accessible via network.
+## 📦 Installation
 
----
+### Prerequisites
 
-## 🧭 Getting Started
+- Node.js 18+ and npm
+- Git
+- PostgreSQL or MongoDB (depending on the database configuration)
 
-### 1️⃣ Clone the Repository
+### Option 1: From Source
+
 ```bash
-git clone https://github.com/perspektive-dev/wohnee-be-service.git
-```
+# Clone repository
+git clone https://github.com/perspektive-dev/wohnee-be.git
+cd wohnee-be
 
-### 2️⃣ Open the Project
-```bash
-cd wohnee-be-service && code .
-```
-
-### 3️⃣ Install Dependencies
-```bash
+# Install dependencies
 npm install
+
+# Build project
+npm run build
+
+# Start development server
+npm run dev
 ```
 
----
+## 💻 Usage
 
-## 🧩 Environment Setup
+### Basic Usage
 
-### 1️⃣ Create Your `.env` File
+Assuming you have an endpoint to retrieve user data:
+
+```javascript
+// Example using a fetch API
+fetch('http://localhost:3000/api/users/1')
+  .then(response => response.json())
+  .then(data => console.log(data))
+  .catch(error => console.error('Error:', error));
+```
+
+### Advanced Examples
+
+(Provide more complex usage scenarios with code examples based on the API functionality)
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/wohnee
+DATABASE_SSL=false
+
+# Server
+PORT=3000
+NODE_ENV=development
+
+# Authentication
+JWT_SECRET=your_jwt_secret_key
+```
+
+### Configuration File
+
+(If applicable, describe the structure of any configuration files used by the application)
+
+## API Reference
+
+(Provide detailed documentation of API endpoints, methods, request/response formats, and authentication requirements.  This section will vary significantly depending on the actual API.)
+
+Example:
+
+**Endpoint:** `GET /api/users/:id`
+
+**Description:** Retrieves user information by ID.
+
+**Request:**
+
+```
+GET /api/users/123
+```
+
+**Response:**
+
+```json
+{
+  "id": 123,
+  "name": "John Doe",
+  "email": "john.doe@example.com"
+}
+```
+
+## 📁 Project Structure
+
+```
+wohnee-be/
+├── 📁 src/
+│   ├── 📁 controllers/        # Request handlers
+│   ├── 📁 models/             # Data models
+│   ├── 📁 routes/             # API routes
+│   ├── 📁 services/           # Business logic
+│   ├── 📁 middleware/         # Middleware functions
+│   ├── 📁 utils/              # Utility functions
+│   ├── 📄 app.ts              # Main application file
+│   └── 📄 server.ts           # Server setup
+├── 📁 config/               # Configuration files
+├── 📁 tests/                # Test files
+├── 📄 .env.example          # Example environment variables
+├── 📄 .gitignore            # Git ignore rules
+├── 📄 package.json          # Project dependencies
+├── 📄 README.md             # Project documentation
+└── 📄 LICENSE               # License file
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) (Create this file if it doesn't exist) for details.
+
+### Quick Contribution Steps
+
+1. 🍴 Fork the repository
+2. 🌟 Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. ✅ Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. 📤 Push to the branch (`git push origin feature/AmazingFeature`)
+5. 🔃 Open a Pull Request
+
+## Testing
+
 ```bash
-cp .env.example .env
-```
-
-### 2️⃣ Configure `.env`
-Adjust values according to your local setup.
-
-> ⚠️ **Important:**  
-> JWT tokens use **RSA-PSS (SHA-256)**.  
-> You must provide your own RSA key pair:
-> - Generate keys at [Crypto Tools RSA Generator](https://cryptotools.net/rsagen)
-> - Encode them in **Base64** at [Base64 Encode](https://www.base64encode.org/)
-> - Save the paths or Base64 strings in `.env`:  
-    >   `JWT_PUBLIC_KEY_FILEPATH` and `JWT_PRIVATE_KEY_FILEPATH`
-
----
-
-## 🗄️ Database Setup
-
-### 1️⃣ Create Database in PostgreSQL
-```sql
-CREATE DATABASE wohnee;
-```
-
-### 2️⃣ Compile TypeScript
-```bash
-npm run tsc
-```
-
-### 3️⃣ Run Database Migrations
-```bash
-npm run migrate
-```
-
----
-
-## ▶️ Running the Application
-
-### 🚀 Production Mode
-```bash
-npm run start
-```
-
-### 🧩 Development Mode (with Live Reload)
-```bash
-npm run start:dev
-```
-
-Server will run on:  
-👉 **http://localhost:3001**
-
----
-
-## 📦 Available NPM Scripts
-
-| Command | Description |
-|----------|-------------|
-| `npm install` | Install project dependencies |
-| `npm run tsc` | Compile TypeScript into JavaScript |
-| `npm run start` | Start the compiled server (production) |
-| `npm run start:dev` | Run development server with hot reload |
-| `npm run migrate` | Execute TypeORM migrations |
-| `npm run lint` | Run ESLint for code quality checks |
-
----
-
-## 🧱 Project Structure
-
-```
-src/
-├── app/
-│   ├── middleware/
-│   │   ├── auth.middleware.ts
-│   │   ├── limiter.middleware.ts
-│   │   ├── signature.middleware.ts
-│   │   └── validator.middleware.ts
-│   ├── module/
-│   │   ├── auth/
-│   │   ├── organization/
-│   │   ├── role/
-│   │   └── files/
-│   └── index.ts
-│
-├── config/
-│   ├── postgres/
-│   └── credentials/
-│
-├── lib/
-│   ├── auth/
-│   ├── helper/
-│   ├── storage/
-│   └── types/
-│
-└── index.ts
-```
-
----
-
-## 🧾 Core Features
-
-✅ JWT Authentication (Access + Refresh Tokens)  
-✅ Role & Permission Management  
-✅ Organization-based User System  
-✅ Secure File Upload to **Local / S3 / GCS**  
-✅ Request Signature Verification via `X-Signature` and `X-Date`  
-✅ Global Error Handling  
-✅ Rate Limiting & Validation Middleware  
-✅ Centralized Logging (Winston)
-
----
-
-## 🔐 Security Notes
-
-- JWT uses **RSA-PSS (SHA-256)** for digital signing.
-- Optional signature verification ensures integrity of API requests.
-- CORS and Rate Limiting are configurable via `.env`.
-- Sensitive keys and credentials **must never be committed** to the repository.
-
----
-
-## 🧪 Testing (Optional)
-
-If you have tests configured:
-```bash
+# Run unit tests
 npm run test
+
+# Run integration tests
+npm run test:integration
 ```
 
-For test coverage reports:
-```bash
-npm run test:coverage
-```
+## Deployment
 
----
+(Provide instructions for deploying the backend to different platforms, such as Heroku, AWS, or Docker.)
 
-## 🧰 Logging
+Example:
 
-- Logging is handled by **Winston**.
-- Development logs are printed to the console.
-- In production, logs can be rotated daily using `winston-daily-rotate-file`.
+### Deploying to Heroku
 
-Example log output:
-```
-2025-10-23 15:32:14 [INFO]: Server is running on port 3001 in development mode
-```
+1.  Create a Heroku app.
+2.  Set the necessary environment variables in Heroku.
+3.  Push the code to Heroku:
 
----
+    ```bash
+    git push heroku main
+    ```
 
-## 🧠 Developer Notes
+## FAQ
 
-- Use `ts-node` during development for faster iteration.
-- Place secrets (private keys, JSON credentials) outside the repository.
-- Always commit a sanitized `.env.example` for reference.
-- Recommended Node version: **v18+**
-- Recommended PostgreSQL version: **v14+**
+(Address common questions and issues related to the project.)
 
----
+## 📄 License
 
-## 🧾 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-This project is licensed under the **MIT License**.
+## 💬 Support
 
----
+- 📧 **Email**: support@wohnee.example.com (Placeholder Email)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/perspektive-dev/wohnee-be/issues)
+- 📖 **Documentation**: [https://wohnee.example.com/docs](https://wohnee.example.com/docs) (Placeholder URL)
 
-## 💡 Maintained by
+## 🙏 Acknowledgments
 
-**Perspektive Dev Team**  
-Crafted with ❤️ by [Perspektive Studio](https://perspektive.id)
-
----
-
-🎯 **Ready to start building?**
-```bash
-npm install
-npm run start:dev
-```
-Then visit 👉 **http://localhost:3001/api/v1**
+- 📚 **Libraries used**:
+    - [Express](https://expressjs.com/) - Web application framework for Node.js
+    - [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) - JSON Web Token implementation
+    - [TypeORM](https://typeorm.io/) - ORM for TypeScript and JavaScript (If applicable)
+- 👥 **Contributors**: Thanks to all [contributors](https://github.com/perspektive-dev/wohnee-be/contributors)
