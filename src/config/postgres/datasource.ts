@@ -21,11 +21,6 @@ for (const key of requiredEnv) {
     }
 }
 
-// --- Simplified SSL config
-// ✅ Always enable SSL in production, but skip certificate validation
-// ❌ Disable SSL in local development
-const sslConfig = {rejectUnauthorized: false};
-
 // --- Base TypeORM options
 const options: DataSourceOptions & SeederOptions = {
     type: "postgres",
@@ -34,9 +29,9 @@ const options: DataSourceOptions & SeederOptions = {
     username: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    logging: !isProduction, // only log queries in development
+    logging: !isProduction && ['query', 'error'], // only log queries in development
     synchronize: false, // never use true in production
-    ssl: sslConfig,
+    ssl: {rejectUnauthorized: false},
     entities: [EntityOrganization, EntityOrganizationData, EntityRole],
     migrations: [resolve(__dirname, "migrations/**/*{.ts,.js}")],
     migrationsTableName: "typeorm_migrations",
@@ -47,16 +42,3 @@ const options: DataSourceOptions & SeederOptions = {
 
 // --- Export DataSource
 export const AppDataSource = new DataSource(options);
-
-// --- Optional: helper to safely initialize DB connection
-export async function initializeDatabase(): Promise<void> {
-    try {
-        if (!AppDataSource.isInitialized) {
-            await AppDataSource.initialize();
-            console.log("✅ PostgreSQL connection established successfully");
-        }
-    } catch (error) {
-        console.error("❌ Failed to initialize PostgreSQL connection:", error);
-        process.exit(1);
-    }
-}

@@ -51,13 +51,12 @@ export class OrganizationService {
             status: 1, //default active
             profile: payload.authentik_profileImagePath || "https://ui-avatars.com/api/?background=random",
             role_id: role.id,
-            phone: "134951359252" //dummy
         }
 
         // Mapping the input data by table
         const entityFieldMap = {
             organization: ['authentik_access_token', 'authentik_userId', 'role_id', 'status'],
-            organization_data: ['email', 'name', 'profile', 'phone']
+            organization_data: ['email', 'name', 'profile']
         }
 
         const foreignKeyMap = {
@@ -125,21 +124,18 @@ export class OrganizationService {
         // Define the payload data
 
         const input = {
-            authentik_access_token: payload.authentik_accessToken,
-            authentik_userId: payload.authentik_userId,
-            email: payload.authentik_userEmail,
-            name: payload.authentik_name,
-
-            //default
             status: 1, //default active
-            profile: payload.authentik_profileImagePath || "https://ui-avatars.com/api/?background=random",
-            role_id: this.roleService.getDefaultRole(),
-            phone: "134951359252" //dummy
+
+            //organization data
+            name: payload.name,
+            email: payload.email,
+            profile: payload.profile || "https://ui-avatars.com/api/?background=random",
+            phone: payload.phone
         }
 
         // Mapping the input data by table
         const entityFieldMap = {
-            organization: ['authentik_access_token', 'authentik_userId', 'role_id', 'status'],
+            organization: ['status'],
             organization_data: ['email', 'name', 'profile', 'phone']
         }
 
@@ -197,7 +193,7 @@ export class OrganizationService {
 
         // END DYNAMIC PROCESS
 
-        return await this.GetOrgByParams({authentik_userId: payload.authentik_userId});
+        return await this.GetOrgByParams({id: id});
     }
 
     async UpdateDataPatch(id: string, data: Record<string, any>) {
@@ -350,31 +346,63 @@ export class OrganizationService {
         return;
     }
 
-    //Mobile
+    /**
+     * ✅ Restore a soft-deleted organization by ID
+     * Resets deleted_at and optionally updates status.
+     */
+    async restoreData(id: string): Promise<Organization | null> {
+        const orgRepo = this.organizationRepository;
+
+        // 1️⃣ Fetch organization, including soft-deleted
+        const organization = await orgRepo.findOne({where: {id}, withDeleted: true});
+
+        if (!organization) {
+            throw new CustomHttpExceptionError(`Organization not found with ID ${id}`, 404);
+        }
+
+        // 2️⃣ Check if it’s actually deleted
+        if (!organization.deleted_at) {
+            throw new CustomHttpExceptionError(`Organization with ID ${id} is already active`, 400);
+        }
+
+        // 3️⃣ Restore organization (clears deleted_at)
+        await this.organizationRepository
+            .createQueryBuilder()
+            .update(EntityOrganization)
+            .set({deleted_at: null})
+            .where("id = :id", {id})
+            .execute();
+
+        // 5️⃣ Return fresh instance (non-deleted)
+        return await this.GetOrgByParams({id});
+    }
+
     async GetOrgByParams(
         params: { [key: string]: any },
-        matchType: 'AND' | 'OR' = 'AND'
+        matchType: "AND" | "OR" = "AND",
+        includeDeleted = false // 🆕 Default false for safety
     ): Promise<Organization | null> {
-        const queryBuilder = this.organizationRepository.createQueryBuilder('organization');
+        const queryBuilder = this.organizationRepository.createQueryBuilder("organization");
 
         const whereConditions: string[] = [];
         const parameters: Record<string, any> = {};
 
-        const buildWhereConditions = (obj: Record<string, any>, prefix = '') => {
+        const buildWhereConditions = (obj: Record<string, any>, prefix = "") => {
             for (const [key, value] of Object.entries(obj)) {
-                // ✅ Determine full field path
                 const field = prefix
                     ? `${prefix}.${key}`
-                    : key.includes('.') || key.startsWith('organization') || key.startsWith('role') || key.startsWith('organization_data')
-                        ? key // if user already included alias
-                        : `organization.${key}`; // default alias for top-level keys
+                    : key.includes(".") ||
+                    key.startsWith("organization") ||
+                    key.startsWith("role") ||
+                    key.startsWith("organization_data")
+                        ? key
+                        : `organization.${key}`;
 
-                const paramKey = field.replace(/\./g, '_');
+                const paramKey = field.replace(/\./g, "_");
 
-                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                if (typeof value === "object" && value !== null && !Array.isArray(value)) {
                     buildWhereConditions(value, field);
                 } else if (Array.isArray(value)) {
-                    // ✅ Handle arrays → IN (...)
                     whereConditions.push(`${field} IN (:...${paramKey})`);
                     parameters[paramKey] = value;
                 } else {
@@ -387,12 +415,19 @@ export class OrganizationService {
         buildWhereConditions(params);
         const whereClause = whereConditions.join(` ${matchType} `);
 
-        const organization = await queryBuilder
-            .leftJoinAndSelect('organization.role', 'role')
-            .leftJoinAndSelect('organization.organization_data', 'organization_data')
-            .where(whereClause, parameters)
-            .getOne();
+        queryBuilder
+            .leftJoinAndSelect("organization.role", "role")
+            .leftJoinAndSelect("organization.organization_data", "organization_data")
+            .where(whereClause, parameters);
 
+        // ✅ includeDeleted
+        if (includeDeleted) {
+            queryBuilder.withDeleted();
+        } else {
+            queryBuilder.andWhere("organization.deleted_at IS NULL");
+        }
+
+        const organization = await queryBuilder.getOne();
         if (!organization) return null;
 
         return {
@@ -411,7 +446,6 @@ export class OrganizationService {
             updated_at: new Date(organization.updated_at),
         };
     }
-
 
     async DeleteAccessToken(id: string, access_token: string, refresh_token: string) {
         return this.organizationRepository.delete({

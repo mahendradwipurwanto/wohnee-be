@@ -16,6 +16,7 @@ import {FilesController} from "./module/files/files.controller";
 import {OrganizationService} from "./module/organization/organization.service";
 import {EntityRole} from "./module/role/role.model";
 import {RoleService} from "./module/role/role.service";
+import {OrganizationController} from "./module/organization/organization.controller";
 
 const prefix = process.env.API_PREFIX || "/api/v1";
 const env = process.env.NODE_ENV || "development";
@@ -65,7 +66,7 @@ export class App {
 
         // --- Auth and Signature verification
         app.use(VerifyJwtToken(prefix));
-        app.use(VerifyRequestSignature());
+        app.use(VerifyRequestSignature(prefix));
     }
 
     /**
@@ -81,10 +82,16 @@ export class App {
 
         // --- Controllers
         const authController = new AuthController(organizationService);
+        const organizationController = new OrganizationController(organizationService);
+
+        // --- File Controller
         const fileController = new FilesController();
 
         // --- Route registration
         app.use(`${prefix}/auth`, authController.router);
+        app.use(`${prefix}/organization`, organizationController.router);
+
+        // --- File management routes
         app.use(`/files`, fileController.router);
 
         // --- Health check route
