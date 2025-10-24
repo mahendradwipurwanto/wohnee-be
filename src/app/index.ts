@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import morgan from "morgan";
-import {AppDataSource} from "../config/postgres/datasource";
+import {AppDataSource} from "../config/database/datasource";
 import {ErrorHandler} from "../lib/helper/errorHandler";
 import loggerHandler from "../lib/helper/loggerHandler";
 
@@ -17,6 +17,9 @@ import {OrganizationService} from "./module/organization/organization.service";
 import {EntityRole} from "./module/role/role.model";
 import {RoleService} from "./module/role/role.service";
 import {OrganizationController} from "./module/organization/organization.controller";
+import {PropertyController} from "./module/property/property.controller";
+import {PropertyService} from "./module/property/property.service";
+import {EntityProperty} from "./module/property/property.model";
 
 const prefix = process.env.API_PREFIX || "/api/v1";
 const env = process.env.NODE_ENV || "development";
@@ -80,9 +83,14 @@ export class App {
             roleService
         );
 
+        const propertyService = new PropertyService(
+            AppDataSource.getRepository(EntityProperty)
+        );
+
         // --- Controllers
         const authController = new AuthController(organizationService);
         const organizationController = new OrganizationController(organizationService);
+        const propertyController = new PropertyController(propertyService);
 
         // --- File Controller
         const fileController = new FilesController();
@@ -90,6 +98,7 @@ export class App {
         // --- Route registration
         app.use(`${prefix}/auth`, authController.router);
         app.use(`${prefix}/organization`, organizationController.router);
+        app.use(`${prefix}/property`, propertyController.router);
 
         // --- File management routes
         app.use(`/files`, fileController.router);

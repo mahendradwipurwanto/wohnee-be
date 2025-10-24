@@ -1,29 +1,30 @@
-import {Repository} from "typeorm";
+import {getMetadataArgsStorage, Repository} from "typeorm";
 import MetaPagination from "../../../lib/helper/pagination";
-import {EntityFaq} from "./property.model";
-import {ConvertDateTime, formatDateOrNull} from "../../../lib/helper/common";
-import {Faq} from "../../../lib/types/data/property";
-import {CreateFaqRequest, UpdateFaqRequest} from "./property.dto";
+import {EntityProperty} from "./property.model";
+import {CreatePropertyRequest, UpdatePropertyRequest} from "./property.dto";
 
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import "dayjs/locale/id";
+import {EntityOrganizationData} from "../organization/organization-data.model";
+import {EntityOrganization} from "../organization/organization.model";
+import {CustomHttpExceptionError} from "../../../lib/helper/errorHandler";
+import {Property} from "../../../lib/types/data/property";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.locale("id");
 
-// Set the locale to Indonesian
-dayjs.locale('id');
-// Assuming you want to convert to a specific timezone (e.g., 'Asia/Jakarta')
-const TIMEZONE =  process.env.TIMEZONE || "Asia/Jakarta";
+const TIMEZONE = process.env.TIMEZONE || "Asia/Jakarta";
 
 export class PropertyService {
-    constructor(
-        private readonly faqRepository: Repository<EntityFaq>,
-    ) {
+    constructor(private readonly propertyRepository: Repository<EntityProperty>) {
     }
 
+    /**
+     * Get paginated property list with filter & sort
+     */
     async getAllData(
         page: number,
         limit: number,
@@ -33,90 +34,83 @@ export class PropertyService {
         filterValue: string,
         filterOperator: string
     ) {
-        const queryBuilder = this.faqRepository.createQueryBuilder('faq');
+        const queryBuilder = this.propertyRepository.createQueryBuilder("property");
 
         queryBuilder
             .select([
-                'property.id',
-                'property.property',
-                'property.answer',
-                'faq_category.category',
-                'faq_category.icon',
-                'property.created_at',
-                'property.updated_at',
-                'property.deleted_at',
+                "property.id",
+                "property.org_id",
+                "property.name",
+                "property.country_id",
+                "country.id",
+                "country.name",
+                "country.code",
+                "country.dial_code",
+                "property.city",
+                "property.street",
+                "property.housenumber",
+                "property.zip_code",
+                "property.created_at",
+                "property.updated_at",
+                "property.deleted_at",
             ])
-            .leftJoin('property.faq_category', 'faq_category')
-            .where('property.deleted_at IS NULL');
+            .leftJoin("property.country", "country")
+            .where("property.deleted_at IS NULL");
 
-        // Filter field map - add blockchain filter if needed
+        // 🔍 Filter mapping
         const filterFieldMap: Record<string, string> = {
-            faq: 'property.property',
-            answer: 'property.answer',
-            category: 'faq_category.category',
-            created_at: 'property.created_at',
-            updated_at: 'property.updated_at',
+            name: "property.name",
+            city: "property.city",
+            country_id: "property.country_id",
+            org_id: "property.org_id",
+            created_at: "property.created_at",
+            updated_at: "property.updated_at",
         };
 
-        // Default operator map - add blockchain operator if needed
         const defaultOperatorMap: Record<string, string> = {
-            faq: 'LIKE',
-            answer: 'LIKE',
-            category: 'LIKE',
-            created_at: 'BETWEEN',
-            updated_at: 'BETWEEN',
+            name: "LIKE",
+            city: "LIKE",
+            country_id: "EQUALS",
+            org_id: "EQUALS",
+            created_at: "BETWEEN",
+            updated_at: "BETWEEN",
         };
 
         const dbField = filterFieldMap[filterBy];
 
         if (dbField && filterValue) {
-            const operator = (filterOperator || defaultOperatorMap[filterBy] || 'LIKE').toUpperCase();
+            const operator = (filterOperator || defaultOperatorMap[filterBy] || "LIKE").toUpperCase();
 
             switch (operator) {
-                case 'EQUALS':
-                case '=':
+                case "EQUALS":
+                case "=":
                     queryBuilder.andWhere(`${dbField} = :value`, {value: filterValue});
                     break;
-
-                case 'NOT_EQUALS':
-                case '!=':
+                case "NOT_EQUALS":
+                case "!=":
                     queryBuilder.andWhere(`${dbField} != :value`, {value: filterValue});
                     break;
-
-                case 'GREATER':
-                case '>=':
+                case "GREATER":
+                case ">=":
                     queryBuilder.andWhere(`${dbField} >= :value`, {value: filterValue});
                     break;
-
-                case 'LESS':
-                case '=<':
+                case "LESS":
+                case "<=":
                     queryBuilder.andWhere(`${dbField} <= :value`, {value: filterValue});
                     break;
-
-                case 'BETWEEN':
-                    const [startRaw, endRaw] = filterValue.split(',').map(v => v.trim());
-
+                case "BETWEEN":
+                    const [startRaw, endRaw] = filterValue.split(",").map((v) => v.trim());
                     if (startRaw && endRaw) {
-                        const start = dayjs(startRaw, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-                        const end = dayjs(endRaw, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']).endOf('day').format('YYYY-MM-DD HH:mm:ss');
-
-                        queryBuilder.andWhere(`${dbField} BETWEEN :start AND :end`, {
-                            start,
-                            end,
-                        });
+                        const start = dayjs(startRaw).startOf("day").format("YYYY-MM-DD HH:mm:ss");
+                        const end = dayjs(endRaw).endOf("day").format("YYYY-MM-DD HH:mm:ss");
+                        queryBuilder.andWhere(`${dbField} BETWEEN :start AND :end`, {start, end});
                     } else if (startRaw) {
-                        // If only one date is provided, treat it as a full-day range
-                        const start = dayjs(startRaw, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-                        const end = dayjs(startRaw, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']).endOf('day').format('YYYY-MM-DD HH:mm:ss');
-
-                        queryBuilder.andWhere(`${dbField} BETWEEN :start AND :end`, {
-                            start,
-                            end,
-                        });
+                        const start = dayjs(startRaw).startOf("day").format("YYYY-MM-DD HH:mm:ss");
+                        const end = dayjs(startRaw).endOf("day").format("YYYY-MM-DD HH:mm:ss");
+                        queryBuilder.andWhere(`${dbField} BETWEEN :start AND :end`, {start, end});
                     }
                     break;
-
-                case 'LIKE':
+                case "LIKE":
                 default:
                     queryBuilder.andWhere(`LOWER(${dbField}) LIKE LOWER(:value)`, {
                         value: `%${filterValue.toLowerCase()}%`,
@@ -130,55 +124,39 @@ export class PropertyService {
             queryBuilder.addOrderBy(filterFieldMap[sortBy], order);
         }
 
-        const [faq, total] = await queryBuilder
+        const [propertyList, total] = await queryBuilder
             .skip((page - 1) * limit)
             .take(limit)
             .getManyAndCount();
 
-        const formattedFaq = await Promise.all(faq.map(async (faq) => ({
-            ...faq,
-            category: faq.faq_category ? faq.faq_category.category : null,
-            created_at: dayjs(faq.created_at).tz(TIMEZONE).locale('id').format('YYYY-MM-DD'),
-            updated_at: formatDateOrNull(faq.updated_at, TIMEZONE) == null ? dayjs(faq.created_at).tz(TIMEZONE).locale('id').format('YYYY-MM-DD') : formatDateOrNull(faq.updated_at, TIMEZONE),
-        })));
+        const formattedList = propertyList.map((prop) => ({
+            ...prop,
+            created_at: dayjs(prop.created_at).tz(TIMEZONE).format("YYYY-MM-DD"),
+        }));
 
         return {
-            list: formattedFaq,
+            list: formattedList,
             meta: MetaPagination(page, limit, total),
         };
     }
 
-    //detail
-    async getDetailData(id: string): Promise<Faq | null> {
-        const queryBuilder = this.faqRepository.createQueryBuilder('faq');
-        queryBuilder
-            .select([
-                'property.id',
-                'property.property',
-                'property.answer',
-                'faq_category.category',
-                'faq_category.icon',
-                'property.created_at',
-                'property.updated_at',
-                'property.deleted_at',
-            ])
-            .leftJoin('property.faq_category', 'faq_category')
-            .where('property.deleted_at IS NULL')
-            .andWhere('property.id = :id', {id: id});
+    /**
+     * Get detail property
+     */
+    async getDetailData(id: string): Promise<EntityProperty | null> {
+        const property = await this.propertyRepository
+            .createQueryBuilder("property")
+            .leftJoinAndSelect("property.country", "country") // ✅ load country details automatically
+            .where("property.deleted_at IS NULL")
+            .andWhere("property.id = :id", { id })
+            .getOne();
 
-        const faq = await queryBuilder.getOne();
+        if (!property) return null;
 
-        if (!faq) return null;
-
-        return {
-            ...faq,
-            category: faq.faq_category ? faq.faq_category.category : null,
-            created_at: await ConvertDateTime(faq.created_at),
-            updated_at: formatDateOrNull(faq.updated_at, TIMEZONE) == null ? dayjs(faq.created_at).tz(TIMEZONE).locale('id').format('YYYY-MM-DD') : formatDateOrNull(faq.updated_at, TIMEZONE),
-        };
+        return property;
     }
 
-    async createData(payload: CreateFaqRequest): Promise<Faq | null> {
+    async createData(org_id: string, payload: CreatePropertyRequest): Promise<Property | null> {
         const mainData: Record<string, any> = {};
 
         // START SETUP DATA
@@ -188,14 +166,18 @@ export class PropertyService {
 
         // Define the payload data
         const input = {
-            faq: payload.faq,
-            answer: payload.answer,
-            faq_category_id: payload.faq_category_id
+            org_id: org_id,
+            name: payload.name,
+            country_id: payload.country_id,
+            city: payload.city,
+            street: payload.street,
+            house_number: payload.housenumber,
+            zip_code: payload.zip_code
         }
 
         // Mapping the input data by table
         const entityFieldMap = {
-            faq: ['faq', 'answer', 'faq_category_id'],
+            organization: ['org_id', 'name', 'country_id', 'city', 'street', 'house_number', 'zip_code'],
         }
 
         const foreignKeyMap = {}
@@ -203,18 +185,19 @@ export class PropertyService {
         // END SETUP DATA
 
         // START DYNAMIC PROCESS
-        for (const field of entityFieldMap.faq) {
+
+        for (const field of entityFieldMap.organization) {
             if (input[field] !== undefined) {
                 mainData[field] = input[field];
             }
         }
 
         // Create and save main entity first
-        const savedMain = await this.faqRepository.save(this.faqRepository.create(mainData));
+        const savedMain = await this.propertyRepository.save(this.propertyRepository.create(mainData));
 
         // Prepare and insert related entities if needed
         for (const relationKey in relatedEntities) {
-            const repo = this.faqRepository.manager.getRepository(relatedEntities[relationKey]);
+            const repo = this.propertyRepository.manager.getRepository(relatedEntities[relationKey]);
             const relationFields = entityFieldMap[relationKey];
             const relationData: Record<string, any> = {};
 
@@ -246,25 +229,28 @@ export class PropertyService {
         return await this.getDetailData(savedMain.id);
     }
 
-    async updateData(id: string, payload: UpdateFaqRequest): Promise<Faq | null> {
+    async updateData(id: string, payload: UpdatePropertyRequest): Promise<Property | null> {
         // START SETUP DATA
 
         // Get the main table data
-        const mainRecord = await this.faqRepository.findOne({where: {id}});
+        const mainRecord = await this.propertyRepository.findOne({where: {id}});
 
         // Define the related entities
         const relatedEntities: Record<string, any> = {};
 
         // Define the payload data
         const input = {
-            faq: payload.faq,
-            answer: payload.answer,
-            faq_category_id: payload.faq_category_id
+            name: payload.name,
+            country_id: payload.country_id,
+            city: payload.city,
+            street: payload.street,
+            house_number: payload.housenumber,
+            zip_code: payload.zip_code
         }
 
         // Mapping the input data by table
         const entityFieldMap = {
-            faq: ['faq', 'answer', 'faq_category_id'],
+            organization: ['org_id', 'name', 'country_id', 'city', 'street', 'house_number', 'zip_code'],
         }
 
         const foreignKeyMap = {}
@@ -274,17 +260,17 @@ export class PropertyService {
         // START DYNAMIC PROCESS
 
         // Update main entity only if field exists in payload
-        for (const field of entityFieldMap.faq) {
+        for (const field of entityFieldMap.organization) {
             if (input[field] !== undefined) {
                 (mainRecord as any)[field] = input[field];
             }
         }
 
-        await this.faqRepository.save(mainRecord);
+        await this.propertyRepository.save(mainRecord);
 
         // Update related entities
         for (const relationKey in relatedEntities) {
-            const repo = this.faqRepository.manager.getRepository(relatedEntities[relationKey]);
+            const repo = this.propertyRepository.manager.getRepository(relatedEntities[relationKey]);
             const relationFields = entityFieldMap[relationKey];
             const relationInput = input[relationKey] || input; // support nested or flat
 
@@ -322,11 +308,91 @@ export class PropertyService {
         return await this.getDetailData(id);
     }
 
+    async UpdateDataPatch(id: string, data: Record<string, any>) {
+        const queryRunner = this.propertyRepository.manager.connection.createQueryRunner();
+
+        try {
+            // ✅ Ensure connection is established
+            await queryRunner.connect();
+
+            // ✅ Start transaction
+            await queryRunner.startTransaction();
+
+            // --- Fetch organization with related data
+            const organization = await queryRunner.manager.findOne(EntityOrganization, {
+                where: {id},
+                relations: ["organization_data"],
+            });
+
+            if (!organization) {
+                throw new CustomHttpExceptionError(`Organization not found with id ${id}`, 404);
+            }
+
+            // --- Extract dynamic columns
+            const orgColumns = getMetadataArgsStorage()
+                .columns.filter((col) => col.target === EntityOrganization)
+                .map((col) => col.propertyName);
+
+            const orgDataColumns = getMetadataArgsStorage()
+                .columns.filter((col) => col.target === EntityOrganizationData)
+                .map((col) => col.propertyName);
+
+            // --- Separate updates
+            const orgUpdates = Object.fromEntries(
+                Object.entries(data).filter(([key]) => orgColumns.includes(key))
+            );
+
+            const orgDataUpdates = Object.fromEntries(
+                Object.entries(data).filter(([key]) => orgDataColumns.includes(key))
+            );
+
+            // --- Update organization fields
+            Object.assign(organization, orgUpdates);
+
+            // --- Update organization_data fields
+            if (Object.keys(orgDataUpdates).length > 0) {
+                let organizationData = organization.organization_data;
+
+                if (!organizationData) {
+                    organizationData = new EntityOrganizationData();
+                    organizationData.org_id = organization.id;
+                }
+
+                Object.assign(organizationData, orgDataUpdates);
+                await queryRunner.manager.save(EntityOrganizationData, organizationData);
+            }
+
+            await queryRunner.manager.save(EntityOrganization, organization);
+
+            // ✅ Commit only if transaction active
+            if (queryRunner.isTransactionActive) {
+                await queryRunner.commitTransaction();
+            }
+
+            // ✅ Return updated org
+            return await this.getDetailData(id);
+
+        } catch (error) {
+            // ✅ Rollback only if transaction started
+            if (queryRunner.isTransactionActive) {
+                await queryRunner.rollbackTransaction();
+            }
+
+            throw error;
+
+        } finally {
+            // ✅ Always release connection
+            if (!queryRunner.isReleased) {
+                await queryRunner.release();
+            }
+        }
+    }
+
     async deleteData(id: string) {
         // START SETUP DATA
 
         // Get the main table data
-        const mainRecord = await this.faqRepository.findOne({where: {id}});
+        const mainRecord = await this.propertyRepository.findOne({where: {id}});
 
         const options = {
             softDelete: true,
@@ -334,7 +400,12 @@ export class PropertyService {
             cascade: true
         }
 
-        const relationDeleteMap = {}
+        const relationDeleteMap = {
+            user_data: {
+                entity: EntityOrganizationData,
+                foreignKey: 'org_id'
+            }
+        }
 
         // END SETUP DATA
 
@@ -343,12 +414,12 @@ export class PropertyService {
         if (options?.preventDeleteIfUsed) {
             for (const key in relationDeleteMap) {
                 const {entity, foreignKey} = relationDeleteMap[key];
-                const repo = this.faqRepository.manager.getRepository(entity);
+                const repo = this.propertyRepository.manager.getRepository(entity);
 
                 const relatedRecords = await repo.find({where: {[foreignKey]: id}});
 
                 if (relatedRecords.length > 0) {
-                    throw new Error(`Cannot delete data cause still in at: ${entity.name}`);
+                    throw new Error(`Cannot delete user data cause still in user at: ${entity.name}`);
                 }
             }
         }
@@ -356,7 +427,7 @@ export class PropertyService {
         if (options?.cascade) {
             for (const key in relationDeleteMap) {
                 const {entity, foreignKey} = relationDeleteMap[key];
-                const repo = this.faqRepository.manager.getRepository(entity);
+                const repo = this.propertyRepository.manager.getRepository(entity);
 
                 const relatedRecords = await repo.find({
                     where: {[foreignKey]: id}
@@ -377,178 +448,13 @@ export class PropertyService {
 
         if (options?.softDelete) {
             (mainRecord as any).deleted_at = new Date();
-            await this.faqRepository.save(mainRecord);
+            await this.propertyRepository.save(mainRecord);
         } else {
-            await this.faqRepository.remove(mainRecord);
+            await this.propertyRepository.remove(mainRecord);
         }
 
         // END DYNAMIC PROCESS
 
         return;
-    }
-
-    async getFaqCategory() {
-        const queryBuilder = this.faqRepository.manager.createQueryBuilder('faq_category', 'faq_category');
-
-        queryBuilder
-            .select(['faq_category.id', 'faq_category.category', 'faq_category.icon'])
-            .where('faq_category.deleted_at IS NULL');
-
-        const faqCategories = await queryBuilder.getMany();
-
-        return faqCategories.map(category => ({
-            id: category.id,
-            category: category.category,
-            icon: category.icon,
-        }));
-    }
-
-    async getFaqCategoryDetail(id: string) {
-        const queryBuilder = this.faqRepository.manager.createQueryBuilder('faq_category', 'faq_category');
-
-        queryBuilder
-            .select(['faq_category.id', 'faq_category.category', 'faq_category.icon'])
-            .where('faq_category.deleted_at IS NULL')
-            .andWhere('faq_category.id = :id', {id: id});
-
-        const faqCategory = await queryBuilder.getOne();
-
-        if (!faqCategory) return null;
-
-        return {
-            id: faqCategory.id,
-            category: faqCategory.category,
-            icon: faqCategory.icon,
-        };
-    }
-
-    async getAll(
-        page: number,
-        limit: number,
-        sortBy: string,
-        order: "ASC" | "DESC",
-        filterBy: string,
-        filterValue: string,
-        filterOperator: string
-    ) {
-        const queryBuilder = this.faqRepository.createQueryBuilder('faq');
-
-        queryBuilder
-            .select([
-                'property.id',
-                'property.property',
-                'property.answer',
-                'faq_category.category',
-                'faq_category.icon',
-                'property.created_at',
-                'property.updated_at',
-                'property.deleted_at',
-            ])
-            .leftJoin('property.faq_category', 'faq_category')
-            .where('property.deleted_at IS NULL');
-
-        // Filter field map - add blockchain filter if needed
-        const filterFieldMap: Record<string, string> = {
-            faq: 'property.property',
-            answer: 'property.answer',
-            category: 'faq_category.category',
-            created_at: 'property.created_at',
-            updated_at: 'property.updated_at',
-        };
-
-        // Default operator map - add blockchain operator if needed
-        const defaultOperatorMap: Record<string, string> = {
-            faq: 'LIKE',
-            answer: 'LIKE',
-            category: 'LIKE',
-            created_at: 'BETWEEN',
-            updated_at: 'BETWEEN',
-        };
-
-        const dbField = filterFieldMap[filterBy];
-
-        if (dbField && filterValue) {
-            const operator = (filterOperator || defaultOperatorMap[filterBy] || 'LIKE').toUpperCase();
-
-            switch (operator) {
-                case 'EQUALS':
-                case '=':
-                    queryBuilder.andWhere(`${dbField} = :value`, {value: filterValue});
-                    break;
-
-                case 'NOT_EQUALS':
-                case '!=':
-                    queryBuilder.andWhere(`${dbField} != :value`, {value: filterValue});
-                    break;
-
-                case 'GREATER':
-                case '>=':
-                    queryBuilder.andWhere(`${dbField} >= :value`, {value: filterValue});
-                    break;
-
-                case 'LESS':
-                case '=<':
-                    queryBuilder.andWhere(`${dbField} <= :value`, {value: filterValue});
-                    break;
-
-                case 'BETWEEN':
-                    const [startRaw, endRaw] = filterValue.split(',').map(v => v.trim());
-
-                    if (startRaw && endRaw) {
-                        const start = dayjs(startRaw, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-                        const end = dayjs(endRaw, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']).endOf('day').format('YYYY-MM-DD HH:mm:ss');
-
-                        queryBuilder.andWhere(`${dbField} BETWEEN :start AND :end`, {
-                            start,
-                            end,
-                        });
-                    } else if (startRaw) {
-                        // If only one date is provided, treat it as a full-day range
-                        const start = dayjs(startRaw, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-                        const end = dayjs(startRaw, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']).endOf('day').format('YYYY-MM-DD HH:mm:ss');
-
-                        queryBuilder.andWhere(`${dbField} BETWEEN :start AND :end`, {
-                            start,
-                            end,
-                        });
-                    }
-                    break;
-
-                case 'LIKE':
-                default:
-                    queryBuilder.andWhere(`LOWER(${dbField}) LIKE LOWER(:value)`, {
-                        value: `%${filterValue.toLowerCase()}%`,
-                    });
-                    break;
-            }
-        }
-
-        // Sorting
-        if (sortBy && filterFieldMap[sortBy]) {
-            queryBuilder.addOrderBy(filterFieldMap[sortBy], order);
-        }
-
-        const [faq, total] = await queryBuilder
-            .skip((page - 1) * limit)
-            .take(limit)
-            .getManyAndCount();
-
-        const formattedFaq = await Promise.all(faq.map(async (faq) => ({
-            ...faq,
-            category: faq.faq_category ? faq.faq_category.category : null,
-            created_at: dayjs(faq.created_at).tz(TIMEZONE).locale('id').format('YYYY-MM-DD'),
-            updated_at: formatDateOrNull(faq.updated_at, TIMEZONE) == null ? dayjs(faq.created_at).tz(TIMEZONE).locale('id').format('YYYY-MM-DD') : formatDateOrNull(faq.updated_at, TIMEZONE),
-        })));
-
-        //remove faq_category from formattedFaq
-        formattedFaq.forEach(faq => {
-            delete faq.faq_category;
-        });
-
-        return {
-            list: formattedFaq.length > 0 ? formattedFaq : null,
-            category: await this.getFaqCategory(),
-            meta: MetaPagination(page, limit, total),
-        };
     }
 }

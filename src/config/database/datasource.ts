@@ -6,6 +6,8 @@ import {SeederOptions} from "typeorm-extension";
 import {EntityOrganization} from "../../app/module/organization/organization.model";
 import {EntityOrganizationData} from "../../app/module/organization/organization-data.model";
 import {EntityRole} from "../../app/module/role/role.model";
+import {EntityProperty} from "../../app/module/property/property.model";
+import {EntityCountries} from "../../app/module/countries/countries.model";
 
 // --- Load environment variables
 dotenv.config();
@@ -32,7 +34,7 @@ const options: DataSourceOptions & SeederOptions = {
     logging: !isProduction && ['query', 'error'], // only log queries in development
     synchronize: false, // never use true in production
     ssl: {rejectUnauthorized: false},
-    entities: [EntityOrganization, EntityOrganizationData, EntityRole],
+    entities: [EntityOrganization, EntityOrganizationData, EntityRole, EntityProperty, EntityCountries],
     migrations: [resolve(__dirname, "migrations/**/*{.ts,.js}")],
     migrationsTableName: "typeorm_migrations",
     migrationsRun: false,
