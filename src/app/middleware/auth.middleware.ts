@@ -32,6 +32,7 @@ declare module "express" {
 export function VerifyJwtToken(prefix: string) {
     // Cache open routes for quick lookup
     const openRoutes = new Set([
+        `${prefix}/health`,
         `${prefix}/auth/sign-in`,
         `${prefix}/auth/sign-up`,
         `${prefix}/auth/sign-out`,

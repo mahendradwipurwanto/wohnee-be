@@ -1,0 +1,1 @@
+export const filterOperatorEnum = ["equals", "greater", "less", "between", "not_equals", "like"];

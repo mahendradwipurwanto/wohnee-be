@@ -3,18 +3,24 @@ import {
     CreateDateColumn,
     Entity,
     OneToOne,
-    PrimaryGeneratedColumn,
     UpdateDateColumn,
     JoinColumn,
-    ManyToOne,
+    ManyToOne, PrimaryColumn, BeforeInsert, DeleteDateColumn,
 } from "typeorm";
+import {v4 as uuidv4} from "uuid";
+
 import {EntityOrganizationData} from "./organization-data.model";
 import {EntityRole} from "../role/role.model";
 
 @Entity("organizations")
 export class EntityOrganization {
-    @PrimaryGeneratedColumn("uuid")
+    @PrimaryColumn({type: "varchar", length: 36})
     id: string;
+
+    @BeforeInsert()
+    setId() {
+        if (!this.id) this.id = uuidv4();
+    }
 
     @Column({type: "varchar", unique: true})
     authentik_userId: string;
@@ -36,6 +42,9 @@ export class EntityOrganization {
 
     @UpdateDateColumn({type: "timestamptz"})
     updated_at: Date;
+
+    @DeleteDateColumn({ name: "deleted_at", type: "timestamp", nullable: true })
+    deleted_at: Date | null;
 
     // ✅ FIX: this side does NOT have JoinColumn
     @OneToOne(() => EntityOrganizationData, (data) => data.organization, {

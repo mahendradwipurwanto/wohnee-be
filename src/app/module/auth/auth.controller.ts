@@ -1,99 +1,111 @@
-import {Router} from "express";
+import {Router, Request, Response, NextFunction} from "express";
 import ValidatorMiddleware from "../../middleware/validator.middleware";
 import {ResponseSuccessBuilder} from "../../../lib/helper/response";
-import loggerHandler from "../../../lib/helper/loggerHandler";
+import logger from "../../../lib/helper/loggerHandler";
 import {SignInDto} from "./auth.dto";
 import {OrganizationService} from "../organization/organization.service";
 import {TokenJwtVerification} from "../../../lib/auth/token";
 import {generateTokenJWT} from "../../../lib/helper/authHandler";
 import {CustomHttpExceptionError} from "../../../lib/helper/errorHandler";
 
+/**
+ * ✅ Authentication Controller
+ * Handles sign-in and sign-out logic using Authentik integration
+ */
 export class AuthController {
-    public router: Router;
-    private organizationService: OrganizationService;
+    public readonly router: Router;
 
-    constructor(organizationService: OrganizationService) {
+    constructor(private readonly organizationService: OrganizationService) {
         this.router = Router();
-        this.organizationService = organizationService;
         this.initializeRoutes();
     }
 
     /**
-     * Initialize all controller routes
+     * Initialize all authentication-related routes
      */
-    private initializeRoutes() {
+    private initializeRoutes(): void {
         this.router.post("/sign-in", ValidatorMiddleware(SignInDto), this.signIn);
         this.router.post("/sign-out", this.signOut);
     }
 
     /**
-     * @route POST /auth/sign-in
-     * @desc Sign in or auto-register organization via authentik_userId
+     * ✅ POST /auth/sign-in
+     * Sign in or auto-register an organization via Authentik
      */
-    private signIn = async (req: any, res: any, next: any): Promise<void> => {
-        try {
-            const payload: SignInDto = req.body;
+    private signIn = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        const payload: SignInDto = req.body;
 
+        try {
             if (!payload.authentik_userId) {
                 throw new CustomHttpExceptionError("authentik_userId is required", 400);
             }
 
-            // ✅ Attempt to find organization by Authentik user ID
-            let organization = await this.organizationService.GetOrgByParams({
-                organization: {authentik_userId: payload.authentik_userId}
-            });
+            // 1️⃣ Try fetching even deleted orgs
+            let organization = await this.organizationService.GetOrgByParams(
+                {authentik_userId: payload.authentik_userId},
+                'AND',
+                true // include deleted
+            );
 
-            // ✅ Auto-register if not found
-            if (!organization) {
-                const createdOrg = await this.organizationService.createData(payload);
-                loggerHandler.info(`[Org] Created new organization: ID=${createdOrg.id}, Name=${createdOrg.organization_data.name}, Email=${createdOrg.organization_data.email}`);
+            console.log('Fetched organization:', organization);
 
-                // ✅ Retrieve created organization for token generation
-                organization = await this.organizationService.GetOrgByParams({
-                    organization: {authentik_userId: payload.authentik_userId}
-                });
+            if (organization?.deleted_at !== null) {
+                // 2️⃣ Restore soft-deleted org
+                await this.organizationService.restoreData(organization.id);
 
-                if (!organization) {
-                    throw new CustomHttpExceptionError("Failed to retrieve newly created organization record", 500);
-                }
+                // Optionally refresh reference after restore
+                organization = await this.organizationService.GetOrgByParams(
+                    {authentik_userId: payload.authentik_userId},
+                    "AND"
+                );
+
+                logger.info(
+                    `[AuthController] ♻️ Restored soft-deleted organization: ID=${organization.id}, Email=${payload.authentik_userEmail}`
+                );
+            } else if (!organization) {
+                // 3️⃣ Create new org if not exist at all
+                organization = await this.organizationService.createData(payload);
+                logger.info(`[AuthController] ✅ Created new organization: ID=${organization.id}`);
             }
 
-            // ✅ Generate signed JWT
             const tokenData = await generateTokenJWT(organization, this.organizationService);
 
-            loggerHandler.info(`[Auth] Sign-in successful for OrgID=${organization.id}`);
-
-            return ResponseSuccessBuilder(res, 200, "Success", tokenData);
-        } catch (error) {
-            loggerHandler.error(`[Auth] Sign-in failed: ${error.message}`, {stack: error.stack});
+            ResponseSuccessBuilder(res, 200, "Sign-in successful", tokenData);
+        } catch (error: any) {
+            logger.error(`[AuthController:signIn] ❌ Sign-in failed: ${error.message}`, {
+                route: req.originalUrl,
+                authentik_userId: payload.authentik_userId,
+                stack: error.stack,
+            });
             next(error);
         }
     };
 
     /**
-     * @route POST /auth/sign-out
-     * @desc Invalidate tokens and end session
+     * ✅ POST /auth/sign-out
+     * Revoke access and refresh tokens to terminate session
      */
-    private signOut = async (req: any, res: any, next: any): Promise<void> => {
+    private signOut = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const refreshToken = req.refresh_token;
-            const accessToken = req.authentik_accessToken;
+            const refreshToken = req.headers["x-refresh-token"] as string;
+            const accessToken = req.headers["authorization"]?.replace("Bearer ", "") as string;
 
             if (!refreshToken || !accessToken) {
                 throw new CustomHttpExceptionError("Missing authentication tokens", 400);
             }
 
-            // ✅ Verify and decode refresh token
+            // ✅ Verify refresh token
             const metadata = await TokenJwtVerification(refreshToken, true);
 
-            // ✅ Revoke token in database
+            // ✅ Delete or revoke tokens from database
             await this.organizationService.DeleteAccessToken(metadata.id, accessToken, refreshToken);
 
-            loggerHandler.info(`[Auth] Logout successful for OrgID=${metadata.id}`);
-
-            return ResponseSuccessBuilder(res, 200, "Logout success", null);
-        } catch (error) {
-            loggerHandler.error(`[Auth] Logout failed: ${error.message}`, {stack: error.stack});
+            ResponseSuccessBuilder(res, 200, "Sign-out successful", null);
+        } catch (error: any) {
+            logger.error(`[AuthController:signOut] ❌ Sign-out failed: ${error.message}`, {
+                route: req.originalUrl,
+                stack: error.stack,
+            });
             next(error);
         }
     };

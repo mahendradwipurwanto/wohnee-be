@@ -1,7 +1,7 @@
 import express from "express";
 import * as dotenv from "dotenv";
 import {App} from "./app";
-import {AppDataSource} from "./config/postgres/datasource";
+import {AppDataSource} from "./config/database/datasource";
 import loggerHandler from "./lib/helper/loggerHandler";
 
 // Load environment variables for non-production environments

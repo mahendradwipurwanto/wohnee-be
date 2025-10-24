@@ -14,6 +14,8 @@ const SIGNATURE_TOLERANCE_MINUTES = parseInt(process.env.SIGNATURE_TOLERANCE_MIN
 /**
  * ✅ Middleware: Verify request signatures using RSA-PSS (RSA + SHA256)
  *
+ * @param prefix - API prefix (e.g. "/api/v1")
+ *
  * Requires headers:
  *   - `X-Signature`: Base64 encoded signature
  *   - `X-Date`: UTC timestamp in ISO or compact format
@@ -22,12 +24,28 @@ const SIGNATURE_TOLERANCE_MINUTES = parseInt(process.env.SIGNATURE_TOLERANCE_MIN
  *   - Request tampering
  *   - Replay attacks (timestamp expiration)
  */
-export function VerifyRequestSignature() {
+export function VerifyRequestSignature(prefix: string) {// Cache open routes for quick lookup
+    const openRoutes = new Set([
+        `${prefix}/health`,
+        `${prefix}/auth/sign-out`,
+    ]);
+
     return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
         try {
             // --- Skip if signature feature disabled
             if (!USE_SIGNATURE) {
                 loggerHandler.debug(`[SIGNATURE] 🔕 Verification disabled for ${req.method} ${req.originalUrl}`);
+                return next();
+            }
+
+            const {path} = req;
+
+            // --- Skip routes that don't require authentication
+            if (
+                openRoutes.has(path) ||
+                path.includes("/files/images") ||
+                path.includes("/favicon.ico")
+            ) {
                 return next();
             }
 
@@ -48,7 +66,8 @@ export function VerifyRequestSignature() {
 
             const diffMinutes = Math.abs((Date.now() - requestTime) / 1000 / 60);
             if (diffMinutes > SIGNATURE_TOLERANCE_MINUTES) {
-                throw new CustomHttpExceptionError("Request timestamp expired", 401);
+                loggerHandler.warn(`[SIGNATURE] ❌ Expired timestamp for ${req.method} ${req.originalUrl}`);
+                throw new CustomHttpExceptionError("Signature request timestamp expired", 401);
             }
 
             // --- Construct canonical message (exact same as used during signing)
