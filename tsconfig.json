@@ -1,9 +1,20 @@
 {
   "compilerOptions": {
+    /* Visit https://aka.ms/tsconfig to read more about this file */
+    "baseUrl": "./src",
+    "moduleResolution": "node",
+    // was not set before, but is the default
+    // Set the base URL for module resolution
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+      // Alias @ to src/
+    },
     "target": "es2022",
     "module": "commonjs",
-    "rootDir": ".",
-    "outDir": "./build",
+    "rootDir": "src",
+    "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": false,
