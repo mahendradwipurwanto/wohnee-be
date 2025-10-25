@@ -8,7 +8,12 @@ import {
     ManyToOne,
     JoinColumn,
 } from "typeorm";
-import {v4 as uuidv4} from "uuid";
+
+let uuidv4;
+(async () => {
+    const { v4 } = await import("uuid");
+    uuidv4 = v4;
+})();
 import {EntityProperty} from "../property/property.model"; // adjust import path
 
 @Entity("unit")

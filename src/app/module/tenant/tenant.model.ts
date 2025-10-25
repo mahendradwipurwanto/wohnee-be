@@ -9,7 +9,12 @@ import {
     ManyToOne,
     JoinColumn,
 } from "typeorm";
-import {v4 as uuidv4} from "uuid";
+
+let uuidv4;
+(async () => {
+    const { v4 } = await import("uuid");
+    uuidv4 = v4;
+})();
 import {EntityTenantData} from "./tenant-data.model";
 import {EntityUnit} from "../unit/unit.model";
 import {EntityOrganization} from "../organization/organization.model";
