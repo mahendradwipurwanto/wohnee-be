@@ -12,7 +12,12 @@ import {
 } from "typeorm";
 import {EntityOrganization} from "../organization/organization.model";
 import {Permission} from "../../../lib/types/data/role";
-import {v4 as uuidv4} from "uuid";
+
+let uuidv4;
+(async () => {
+    const { v4 } = await import("uuid");
+    uuidv4 = v4;
+})();
 
 /**
  * ✅ EntityRole — Defines RBAC roles with hierarchical structure

@@ -4,7 +4,12 @@ import {
     CreateDateColumn,
     UpdateDateColumn, PrimaryColumn, BeforeInsert, ManyToOne, JoinColumn,
 } from "typeorm";
-import {v4 as uuidv4} from "uuid";
+
+let uuidv4;
+(async () => {
+    const { v4 } = await import("uuid");
+    uuidv4 = v4;
+})();
 import {EntityCountries} from "../countries/countries.model";
 
 @Entity("property")

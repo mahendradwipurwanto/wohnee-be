@@ -6,7 +6,12 @@ import {
     OneToOne, PrimaryColumn,
 } from "typeorm";
 import {EntityOrganization} from "./organization.model";
-import {v4 as uuidv4} from "uuid";
+
+let uuidv4;
+(async () => {
+    const { v4 } = await import("uuid");
+    uuidv4 = v4;
+})();
 
 @Entity("organization_data")
 export class EntityOrganizationData {
