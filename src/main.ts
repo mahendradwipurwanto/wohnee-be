@@ -3,6 +3,7 @@ import * as dotenv from "dotenv";
 import {App} from "./app";
 import {AppDataSource} from "./config/database/datasource";
 import loggerHandler from "./lib/helper/loggerHandler";
+import helmet from "helmet";
 
 if (process.env.NODE_ENV !== "production") {
     dotenv.config();
@@ -22,6 +23,23 @@ async function startServer(): Promise<void> {
         }
 
         app.set("trust proxy", 1);
+
+        // ✅ Configure Helmet CSP to allow Swagger UI to connect to API endpoints
+        app.use(
+            helmet({
+                contentSecurityPolicy: {
+                    useDefaults: true,
+                    directives: {
+                        "default-src": ["'self'"],
+                        "connect-src": ["'self'", "http://localhost:3001"], // 👈 allow Swagger UI calls
+                        "img-src": ["'self'", "data:", "https:"],
+                        "script-src": ["'self'", "'unsafe-inline'"],
+                        "style-src": ["'self'", "'unsafe-inline'"],
+                    },
+                },
+            })
+        );
+
         mainApp.SetupMiddleware(app);
         mainApp.SetupRoutes(app);
         mainApp.SetupErrorHandling(app);

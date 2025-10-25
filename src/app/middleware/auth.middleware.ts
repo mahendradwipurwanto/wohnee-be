@@ -30,26 +30,27 @@ declare module "express" {
  * @returns Express middleware function
  */
 export function VerifyJwtToken(prefix: string) {
-    // Cache open routes for quick lookup
-    const openRoutes = new Set([
-        `${prefix}/health`,
-        `${prefix}/auth/sign-in`,
-        `${prefix}/auth/sign-up`,
-        `${prefix}/auth/sign-out`,
-    ]);
+    // ✅ Regex-based route patterns for wildcard matching
+    const openRoutePatterns = [
+        new RegExp(`^${prefix}/health$`),
+        new RegExp(`^${prefix}/auth/sign-(in|up|out)$`),
+        new RegExp(`^${prefix}/docs($|/.*)`),          // ✅ bypass /docs/**
+        new RegExp(`^${prefix}/files/images($|/.*)`),
+        new RegExp(`/favicon\\.ico$`),
+    ];
 
     return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
         try {
-            const {path, headers} = req;
+            const {headers} = req;
 
-            // --- Skip routes that don't require authentication
-            if (
-                openRoutes.has(path) ||
-                path.includes("/files/images") ||
-                path.includes("/favicon.ico")
-            ) {
+            const fullPath = req.originalUrl.split("?")[0]; // remove query params
+
+            // ✅ Bypass open/public routes
+            if (openRoutePatterns.some((pattern) => pattern.test(fullPath))) {
+                loggerHandler.debug(`[AUTH] 🧩 Bypassed JWT check for route: ${fullPath}`);
                 return next();
             }
+
 
             // --- Validate Authorization header
             const authHeader = headers["authorization"] || headers["Authorization"];
