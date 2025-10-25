@@ -91,18 +91,4 @@ export class CountriesService {
             meta: MetaPagination(page, limit, total),
         };
     }
-
-    /**
-     * Get detail countries
-     */
-    async getDetailData(id: string): Promise<EntityCountries | null> {
-        const countries = await this.countriesRepository
-            .createQueryBuilder("countries")
-            .andWhere("countries.id = :id", {id})
-            .getOne();
-
-        if (!countries) return null;
-
-        return countries
-    }
 }

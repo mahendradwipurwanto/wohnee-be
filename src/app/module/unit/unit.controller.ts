@@ -1,202 +1,144 @@
-import {Router} from "express";
-import {ResponseSuccessBuilder} from "../../../lib/helper/response";
-
-import {UnitService} from "./unit.service";
-import {CustomHttpExceptionError} from "../../../lib/helper/errorHandler";
-import {filterOperatorEnum} from "../../../lib/types/constants/global";
-import {CreateFaqRequest} from "./unit.dto";
-import loggerHandler from "../../../lib/helper/loggerHandler";
+import { Router } from "express";
+import { ResponseSuccessBuilder } from "../../../lib/helper/response";
+import { UnitService } from "./unit.service";
+import { PropertyService } from "../property/property.service"; // ✅ import PropertyService
+import { CustomHttpExceptionError } from "../../../lib/helper/errorHandler";
+import { CreateUnitRequest, UpdateUnitRequest } from "./unit.dto";
+import { filterOperatorEnum } from "../../../lib/types/constanst/global";
+import { validateId } from "../../../lib/helper/common";
 
 export class UnitController {
     public router: Router;
-    private faqService: UnitService;
+    private unitService: UnitService;
+    private propertyService: PropertyService; // ✅ added property service
 
-    constructor(faqService: UnitService) {
+    constructor(unitService: UnitService, propertyService: PropertyService) {
         this.router = Router();
-        this.faqService = faqService;
+        this.unitService = unitService;
+        this.propertyService = propertyService; // ✅ initialize
         this.initializeRoutes();
     }
 
     private initializeRoutes() {
-        // Admin
-        this.router.get("/category/list", this.getAllCategoryData);
-        this.router.get("/category/detail/:id", this.getDetailCategoryData);
-
-        this.router.get("/list", this.getAllData);
-        this.router.get("/detail/:id", this.getDetailData);
-        this.router.post("/create", this.createData);
-        this.router.put("/update/:id", this.updateData);
-        this.router.delete("/delete/:id", this.deleteData);
-
-
-        // Mobile
-        this.router.get("/", this.getAll);
+        this.router.get("/", this.getAllData);
+        this.router.get("/:id", this.getDetailData);
+        this.router.post("/", this.createData);
+        this.router.put("/:id", this.updateData);
+        this.router.delete("/:id", this.deleteData);
     }
 
-    // Admin
-
-    // function to get all data
+    // ✅ Get all unit data
     getAllData = async (req, res, next) => {
         try {
             const filterBy: string = req.query.filter_by || "";
             const filterValue: string = req.query.filter_value || "";
             const filterOperator: string = req.query.filter_operator || "";
 
-            //check filterOperator enum in filterOperatorEnum
             if (filterOperator && !filterOperatorEnum.includes(filterOperator)) {
                 throw new CustomHttpExceptionError("Invalid filter operator", 400);
             }
 
-            const page: number = (req.query.page == 0 ? 1 : req.query.page) || 1;
-            const limit: number = req.query.limit || 10;
-            const sortBy: string = req.query.sort || "order";
-            const order: string = req.query.order || "ASC";
+            const page: number = Number(req.query.page) || 1;
+            const limit: number = Number(req.query.limit) || 10;
+            const sortBy: string = req.query.sort || "created_at";
+            const order: "ASC" | "DESC" = (req.query.order || "ASC").toUpperCase() as "ASC" | "DESC";
 
-            const faqs = await this.faqService.getAllData(page, limit, sortBy, order.toUpperCase() as "ASC" | "DESC", filterBy, filterValue, filterOperator);
+            const units = await this.unitService.getAllData(page, limit, sortBy, order, filterBy, filterValue, filterOperator);
 
-            return ResponseSuccessBuilder(res, 200, "Success get all property data", faqs);
+            return ResponseSuccessBuilder(res, 200, "Success get all unit data", units);
         } catch (error) {
             next(error);
         }
-    }
+    };
 
-    // function to get detail data
+    // ✅ Get detail unit
     getDetailData = async (req, res, next) => {
         try {
             const id: string = req.params.id;
-            if (!id) {
-                throw new CustomHttpExceptionError("Invalid payload", 400);
-            }
+            if (!id) throw new CustomHttpExceptionError("Invalid payload", 400);
 
-            const faq = await this.faqService.getDetailData(id);
+            validateId(id);
 
-            if (!faq) {
-                throw new CustomHttpExceptionError("Faq not found", 404);
-            }
-            return ResponseSuccessBuilder(res, 200, "Success get property data", faq);
+            const unit = await this.unitService.getDetailData(id);
+            if (!unit) throw new CustomHttpExceptionError("Unit not found", 404);
+
+            return ResponseSuccessBuilder(res, 200, "Success get unit data", unit);
         } catch (error) {
             next(error);
         }
-    }
+    };
 
-    // function to create data
+    // ✅ Create new unit (check property_id)
     createData = async (req, res, next) => {
         try {
-            const payload: CreateFaqRequest = req.body;
+            const payload: CreateUnitRequest = req.body;
+            if (!payload) throw new CustomHttpExceptionError("Invalid payload", 400);
 
-            if (!payload) {
-                throw new CustomHttpExceptionError("Invalid payload", 400);
+            // ✅ Ensure property_id exists
+            if (!payload.property_id) {
+                throw new CustomHttpExceptionError("Property ID is required", 400);
             }
 
-            const faq = await this.faqService.createData(payload);
+            validateId(payload.property_id);
 
-            return ResponseSuccessBuilder(res, 201, "Success create property data", faq);
+            const property = await this.propertyService.getDetailData(payload.property_id);
+            if (!property) {
+                throw new CustomHttpExceptionError("Property not found", 404);
+            }
+
+            const unit = await this.unitService.createData(payload);
+            return ResponseSuccessBuilder(res, 201, "Success create unit data", unit);
         } catch (error) {
             next(error);
         }
-    }
+    };
 
-    // function to update data
+    // ✅ Update existing unit (check property_id if provided)
     updateData = async (req, res, next) => {
         try {
             const id: string = req.params.id;
-            const payload: CreateFaqRequest = req.body;
+            const payload: UpdateUnitRequest = req.body;
 
-            if (!id) {
-                throw new CustomHttpExceptionError("Invalid payload", 400);
+            validateId(id);
+
+            if (!id) throw new CustomHttpExceptionError("Invalid payload", 400);
+
+            // ✅ Check if unit exists
+            const existingUnit = await this.unitService.getDetailData(id);
+            if (!existingUnit) throw new CustomHttpExceptionError("Unit not found", 404);
+
+            // ✅ If property_id is included, validate it
+            if (payload.property_id) {
+                validateId(payload.property_id);
+
+                const property = await this.propertyService.getDetailData(payload.property_id);
+                if (!property) {
+                    throw new CustomHttpExceptionError("Property not found", 404);
+                }
             }
 
-            // check if property exists
-            const checkFaq = await this.faqService.getDetailData(id);
-            if (!checkFaq) {
-                throw new CustomHttpExceptionError("Faq not found", 404);
-            }
-
-            const faq = await this.faqService.updateData(id, payload);
-
-            return ResponseSuccessBuilder(res, 200, "Success update property data", faq);
+            const unit = await this.unitService.updateData(id, payload);
+            return ResponseSuccessBuilder(res, 200, "Success update unit data", unit);
         } catch (error) {
             next(error);
         }
-    }
+    };
 
-    // function to delete data
+    // ✅ Soft delete unit
     deleteData = async (req, res, next) => {
         try {
             const id: string = req.params.id;
+            validateId(id);
 
-            if (!id) {
-                throw new CustomHttpExceptionError("Invalid payload", 400);
-            }
+            if (!id) throw new CustomHttpExceptionError("Invalid payload", 400);
 
-            //check property
-            const checkFaq = await this.faqService.getDetailData(id);
-            if (!checkFaq) {
-                throw new CustomHttpExceptionError("Faq not found", 404);
-            }
+            const existingUnit = await this.unitService.getDetailData(id);
+            if (!existingUnit) throw new CustomHttpExceptionError("Unit not found", 404);
 
-            const faq = await this.faqService.deleteData(id);
-
-            return ResponseSuccessBuilder(res, 200, "Success delete property data", faq);
+            await this.unitService.deleteData(id);
+            return ResponseSuccessBuilder(res, 200, "Success delete unit data", null);
         } catch (error) {
             next(error);
         }
-    }
-
-    // function to get all data
-    getAllCategoryData = async (req, res, next) => {
-        try {
-            loggerHandler.info(`Data faq ${req.path}`)
-
-            const faqs = await this.faqService.getFaqCategory();
-
-            return ResponseSuccessBuilder(res, 200, "Success get all property data", faqs);
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    // function to get detail data
-    getDetailCategoryData = async (req, res, next) => {
-        try {
-            const id: string = req.params.id;
-            if (!id) {
-                throw new CustomHttpExceptionError("Invalid payload", 400);
-            }
-
-            const faq = await this.faqService.getFaqCategoryDetail(id);
-
-            if (!faq) {
-                throw new CustomHttpExceptionError("Faq not found", 404);
-            }
-            return ResponseSuccessBuilder(res, 200, "Success get property data", faq);
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    // function to get all data
-    getAll = async (req, res, next) => {
-        try {
-            const filterBy: string = req.query.filter_by || "";
-            const filterValue: string = req.query.filter_value || "";
-            const filterOperator: string = req.query.filter_operator || "";
-
-            //check filterOperator enum in filterOperatorEnum
-            if (filterOperator && !filterOperatorEnum.includes(filterOperator)) {
-                throw new CustomHttpExceptionError("Invalid filter operator", 400);
-            }
-
-            const page: number = (req.query.page == 0 ? 1 : req.query.page) || 1;
-            const limit: number = req.query.limit || 10;
-            const sortBy: string = req.query.sort || "order";
-            const order: string = req.query.order || "ASC";
-
-            const faqs = await this.faqService.getAll(page, limit, sortBy, order.toUpperCase() as "ASC" | "DESC", filterBy, filterValue, filterOperator);
-
-            return ResponseSuccessBuilder(res, 200, "Success get all property data", faqs);
-        } catch (error) {
-            next(error);
-        }
-    }
+    };
 }

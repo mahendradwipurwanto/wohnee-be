@@ -25,8 +25,6 @@ export class PropertyController {
         this.router.delete("/:id", this.deleteData);
     }
 
-    // Admin
-
     // function to get all data
     getAllData = async (req, res, next) => {
         try {
