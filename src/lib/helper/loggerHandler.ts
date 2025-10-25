@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { createLogger, format, transports, Logger } from "winston";
+import {createLogger, format, transports, Logger} from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 
 // --- Determine environment
@@ -11,33 +11,41 @@ const logDir = path.resolve(process.env.LOG_PATH || "logs");
 
 if (!isProduction) {
     if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir, { recursive: true });
+        fs.mkdirSync(logDir, {recursive: true});
     }
 }
 
+// --- Helper: Flatten multiline log messages
+const sanitizeMessage = (msg: unknown): string => {
+    if (!msg) return "";
+    const str = typeof msg === "string" ? msg : JSON.stringify(msg);
+    return str
+        .replace(/\n/g, " ") // remove newlines
+        .replace(/\s\s+/g, " ") // collapse multiple spaces
+        .trim();
+};
+
 // --- Define base log format
-const logFormat = format.printf(({ level, message, timestamp }) => {
-    return `${timestamp} [${level.toUpperCase()}]: ${message}`;
+const logFormat = format.printf(({level, message, timestamp}) => {
+    const cleanMessage = sanitizeMessage(message);
+    return `${timestamp} [${level.toUpperCase()}]: ${cleanMessage}`;
 });
 
 // --- Winston logger configuration
 const logger = createLogger({
     level: isProduction ? "info" : "debug",
     format: format.combine(
-        format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-        format.errors({ stack: true }),
+        format.timestamp({format: "YYYY-MM-DD HH:mm:ss"}),
+        format.errors({stack: true}),
         logFormat
     ),
     transports: [
-        // --- Always log to console
         new transports.Console({
             format: format.combine(
-                format.colorize({ all: !isProduction }),
+                format.timestamp({format: "YYYY-MM-DD HH:mm:ss"}),
                 logFormat
             ),
         }),
-
-        // --- Write rotating files only in non-production
         ...(isProduction
             ? []
             : [
@@ -68,7 +76,7 @@ const logger = createLogger({
     httpStream: { write: (message: string) => void };
 }).httpStream = {
     write: (message: string) => {
-        logger.info(message.trim());
+        logger.info(sanitizeMessage(message));
     },
 };
 

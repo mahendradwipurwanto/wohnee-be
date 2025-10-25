@@ -8,10 +8,10 @@
     "build": "tsc -p tsconfig.json",
     "clean": "rimraf coverage build tmp",
     "build:release": "npm run clean && tsc -p tsconfig.release.json",
-    "migration:create": "typeorm migration:create ./src/config/postgres/migrations/$npm_config_name",
+    "migration:create": "typeorm migration:create src/config/database/migrations/$npm_config_name",
     "migration:up": "cross-var typeorm migration:run -d ./build/src/config/postgres/datasource.js",
     "migration:down": "cross-var typeorm migration:revert -d ./build/src/config/postgres/datasource.js",
-    "seed:create": "ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:create -n ./src/config/postgres/seeders/$npm_config_name",
+    "seed:create": "ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:create -n src/config/database/seeders/$npm_config_name",
     "seed:up": "ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:run -d ./build/src/config/postgres/datasource.js",
     "test": "env-cmd -f .env.test jest --coverage --runInBand"
   },
@@ -43,6 +43,7 @@
     "ts-node": "^10.9.2",
     "typeorm": "^0.3.20",
     "typeorm-extension": "^3.6.1",
+    "uuid": "^13.0.0",
     "winston": "^3.18.3",
     "winston-daily-rotate-file": "^5.0.0"
   },

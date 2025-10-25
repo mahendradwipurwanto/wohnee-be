@@ -26,8 +26,8 @@ export async function TokenJwtGenerator(
     }
 
     try {
-        const expirationTime = parseInt(expiresIn, 10) * 1000;
         const now = Date.now();
+        const expirationTime = parseInt(expiresIn, 10) * 1000;
 
         const payload: JwtPayload = {
             id: data.id,
@@ -38,18 +38,14 @@ export async function TokenJwtGenerator(
             role: data.role,
             type: data.type,
             permissions: data.permissions,
-            iat: Math.floor(now / 1000),
-            exp: Math.floor((now + expirationTime) / 1000),
             date: new Date(now).toLocaleString("id-ID", {timeZone: "Asia/Jakarta"}),
-            expired: new Date(now + expirationTime).toLocaleString("id-ID", {
-                timeZone: "Asia/Jakarta",
-            }),
+            expired: new Date(now + expirationTime).toLocaleString("id-ID", {timeZone: "Asia/Jakarta"}),
         };
 
         const options: SignOptions = {
             issuer: jwtIssuer,
             algorithm: "HS256",
-            expiresIn: parseInt(expiresIn, 10),
+            expiresIn: parseInt(expiresIn, 10), // ✅ let jsonwebtoken calculate exp
         };
 
         const token = jwt.sign(payload, secretKey, options);
@@ -84,7 +80,7 @@ export async function TokenJwtVerification(
         const options: VerifyOptions = {
             issuer: jwtIssuer,
             algorithms: ["HS256"],
-            clockTolerance: 5, // allow 5s skew
+            clockTolerance: 10, // allow 5s skew
         };
 
         const decoded = jwt.verify(token, secretKey, options) as JwtPayload;

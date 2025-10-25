@@ -1,4 +1,4 @@
-import { RoleData } from "./role";
+import {RoleData} from "./role";
 
 /**
  * ✅ Represents an organization entity, mirroring the database model (EntityOrganization)
@@ -34,6 +34,9 @@ export interface Organization {
 
     /** Date the record was last updated */
     updated_at: Date;
+
+    /** Date the record was last deleted */
+    deleted_at: Date;
 
     /** Optional extended organization data */
     organization_data?: OrganizationData | null;

@@ -2,10 +2,10 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    PrimaryGeneratedColumn,
     Index,
-    UpdateDateColumn,
+    UpdateDateColumn, PrimaryColumn, BeforeInsert,
 } from "typeorm";
+import {v4 as uuidv4} from "uuid";
 
 /**
  * ✅ TokenAuth Entity
@@ -14,8 +14,13 @@ import {
 @Entity({name: "token_auth"})
 @Index("idx_token_user_id", ["user_id"], {unique: true})
 export class TokenAuth {
-    @PrimaryGeneratedColumn("uuid")
-    id!: string;
+    @PrimaryColumn({ type: "varchar", length: 36 })
+    id: string;
+
+    @BeforeInsert()
+    setId() {
+        if (!this.id) this.id = uuidv4();
+    }
 
     @Column({type: "uuid", nullable: false})
     @Index("idx_user_id")
@@ -41,8 +46,13 @@ export class TokenAuth {
 @Entity({name: "otps"})
 @Index("idx_otp_metadata", ["metadata"], {unique: true})
 export class Otp {
-    @PrimaryGeneratedColumn("uuid")
-    id!: string;
+    @PrimaryColumn({ type: "varchar", length: 36 })
+    id: string;
+
+    @BeforeInsert()
+    setId() {
+        if (!this.id) this.id = uuidv4();
+    }
 
     @Column({type: "varchar", length: 255, nullable: false})
     metadata!: string;

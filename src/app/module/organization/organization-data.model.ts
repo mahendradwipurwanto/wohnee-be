@@ -1,16 +1,22 @@
 import {
+    BeforeInsert,
     Column,
     Entity,
     JoinColumn,
-    OneToOne,
-    PrimaryGeneratedColumn,
+    OneToOne, PrimaryColumn,
 } from "typeorm";
 import {EntityOrganization} from "./organization.model";
+import {v4 as uuidv4} from "uuid";
 
 @Entity("organization_data")
 export class EntityOrganizationData {
-    @PrimaryGeneratedColumn("uuid")
+    @PrimaryColumn({ type: "varchar", length: 36 })
     id: string;
+
+    @BeforeInsert()
+    setId() {
+        if (!this.id) this.id = uuidv4();
+    }
 
     // ✅ actual FK column
     @Column({type: "uuid", unique: true})

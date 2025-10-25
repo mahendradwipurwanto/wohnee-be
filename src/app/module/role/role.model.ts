@@ -1,4 +1,5 @@
 import {
+    BeforeInsert,
     Column,
     CreateDateColumn,
     DeleteDateColumn,
@@ -6,12 +7,12 @@ import {
     Index,
     JoinColumn,
     ManyToOne,
-    OneToMany,
-    PrimaryGeneratedColumn,
+    OneToMany, PrimaryColumn,
     UpdateDateColumn,
 } from "typeorm";
 import {EntityOrganization} from "../organization/organization.model";
 import {Permission} from "../../../lib/types/data/role";
+import {v4 as uuidv4} from "uuid";
 
 /**
  * ✅ EntityRole — Defines RBAC roles with hierarchical structure
@@ -19,8 +20,13 @@ import {Permission} from "../../../lib/types/data/role";
 @Entity({name: "roles"})
 @Index("idx_role_name_unique", ["name"], {unique: true})
 export class EntityRole {
-    @PrimaryGeneratedColumn("uuid")
-    id!: string;
+    @PrimaryColumn({ type: "varchar", length: 36 })
+    id: string;
+
+    @BeforeInsert()
+    setId() {
+        if (!this.id) this.id = uuidv4();
+    }
 
     @Column({type: "varchar", length: 50, nullable: false})
     name!: string;
