@@ -54,13 +54,6 @@ Key technologies used in this project include TypeScript, Node.js, Express.js (l
 
 🔗 **Live Demo**: [https://wohnee.example.com/api](https://wohnee.example.com/api) (Placeholder URL - Replace with actual demo link)
 
-### Screenshots
-![Dashboard View](screenshots/dashboard.png)
-*User dashboard with property overview and task assignments*
-
-![Task Management](screenshots/task-management.png)
-*Task management interface for creating and tracking tasks*
-
 ## 🚀 Quick Start
 
 Clone and run in 3 steps:
@@ -77,7 +70,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the API documentatio
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20+ and npm
 - Git
 - PostgreSQL or MongoDB (depending on the database configuration)
 
@@ -120,9 +113,10 @@ fetch('http://localhost:3000/api/users/1')
 
 ### Environment Variables
 
-Create a `.env` file in the root directory:
+Create a `.env` from .env.example file in the root directory:
 
 ```env
+## This only a example setup of env file, follow all the key on .env.example
 # Database
 DATABASE_URL=postgresql://user:password@localhost:5432/wohnee
 DATABASE_SSL=false
@@ -235,7 +229,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 💬 Support
 
-- 📧 **Email**: support@wohnee.example.com (Placeholder Email)
+- 📧 **Email**: mahendradwipurwanto@gmail.com
 - 🐛 **Issues**: [GitHub Issues](https://github.com/perspektive-dev/wohnee-be/issues)
 - 📖 **Documentation**: [https://wohnee.example.com/docs](https://wohnee.example.com/docs) (Placeholder URL)
 

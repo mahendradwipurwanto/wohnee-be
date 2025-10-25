@@ -1,12 +1,18 @@
-import {Router} from "express";
-import {ResponseSuccessBuilder} from "../../../lib/helper/response";
-import {ContactService} from "./contact.service";
-import {UnitService} from "../unit/unit.service";
-import {CustomHttpExceptionError} from "../../../lib/helper/errorHandler";
-import {CreateContactRequest, UpdateContactRequest} from "./contact.dto";
-import {filterOperatorEnum} from "../../../lib/types/constanst/global";
-import {validateId} from "../../../lib/helper/common";
+import { Router } from "express";
+import { ResponseSuccessBuilder } from "../../../lib/helper/response";
+import { ContactService } from "./contact.service";
+import { UnitService } from "../unit/unit.service";
+import { CustomHttpExceptionError } from "../../../lib/helper/errorHandler";
+import { CreateContactRequest, UpdateContactRequest } from "./contact.dto";
+import { filterOperatorEnum } from "../../../lib/types/constanst/global";
+import { validateId } from "../../../lib/helper/common";
 
+/**
+ * @swagger
+ * tags:
+ *   name: Contacts
+ *   description: Manage contact data associated with property units
+ */
 export class ContactController {
     public router: Router;
     private contactService: ContactService;
@@ -27,6 +33,80 @@ export class ContactController {
         this.router.delete("/:id", this.deleteData);
     }
 
+    /**
+     * @swagger
+     * /contact:
+     *   get:
+     *     summary: Get all contacts
+     *     description: Retrieve a paginated list of contacts. Supports optional filters, sorting, and pagination.
+     *     tags: [Contacts]
+     *     parameters:
+     *       - in: query
+     *         name: filter_by
+     *         schema:
+     *           type: string
+     *         description: Field to filter by (e.g. name, email)
+     *       - in: query
+     *         name: filter_value
+     *         schema:
+     *           type: string
+     *         description: Value to filter by
+     *       - in: query
+     *         name: filter_operator
+     *         schema:
+     *           type: string
+     *           enum: [EQUAL, LIKE, IN, NOT_IN]
+     *         description: Operator used for filtering
+     *       - in: query
+     *         name: page
+     *         schema:
+     *           type: integer
+     *           example: 1
+     *       - in: query
+     *         name: limit
+     *         schema:
+     *           type: integer
+     *           example: 10
+     *       - in: query
+     *         name: sort
+     *         schema:
+     *           type: string
+     *           example: created_at
+     *       - in: query
+     *         name: order
+     *         schema:
+     *           type: string
+     *           enum: [ASC, DESC]
+     *           example: ASC
+     *     responses:
+     *       200:
+     *         description: Success get all contact data
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 responseCode:
+     *                   type: integer
+     *                   example: 200
+     *                 message:
+     *                   type: string
+     *                   example: Success get all contact data
+     *                 data:
+     *                   type: object
+     *                   properties:
+     *                     list:
+     *                       type: array
+     *                       items:
+     *                         type: object
+     *                         properties:
+     *                           id:
+     *                             type: string
+     *                           name:
+     *                             type: string
+     *                           phone:
+     *                             type: string
+     */
     getAllData = async (req, res, next) => {
         try {
             const filterBy = req.query.filter_by || "";
@@ -52,6 +132,26 @@ export class ContactController {
         }
     };
 
+    /**
+     * @swagger
+     * /contact/{id}:
+     *   get:
+     *     summary: Get contact detail
+     *     description: Fetch a single contact by its ID.
+     *     tags: [Contacts]
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Contact ID
+     *     responses:
+     *       200:
+     *         description: Success get contact detail
+     *       404:
+     *         description: Contact not found
+     */
     getDetailData = async (req, res, next) => {
         try {
             const id = req.params.id;
@@ -66,6 +166,44 @@ export class ContactController {
         }
     };
 
+    /**
+     * @swagger
+     * /contact:
+     *   post:
+     *     summary: Create a new contact
+     *     description: Creates a new contact and associates it with a unit.
+     *     tags: [Contacts]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - name
+     *               - phone
+     *               - unit_id
+     *             properties:
+     *               name:
+     *                 type: string
+     *                 example: "John Doe"
+     *               phone:
+     *                 type: string
+     *                 example: "+628123456789"
+     *               email:
+     *                 type: string
+     *                 example: "john.doe@email.com"
+     *               unit_id:
+     *                 type: string
+     *                 example: "f31702ba-8d6d-4b5b-bd67-1a9ef0cb842e"
+     *     responses:
+     *       201:
+     *         description: Success create contact data
+     *       400:
+     *         description: Invalid or missing input data
+     *       404:
+     *         description: Unit not found
+     */
     createData = async (req, res, next) => {
         try {
             const payload: CreateContactRequest = req.body;
@@ -82,6 +220,42 @@ export class ContactController {
         }
     };
 
+    /**
+     * @swagger
+     * /contact/{id}:
+     *   put:
+     *     summary: Update contact data
+     *     description: Updates a contact's details by ID.
+     *     tags: [Contacts]
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Contact ID
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               name:
+     *                 type: string
+     *                 example: "Jane Doe"
+     *               phone:
+     *                 type: string
+     *                 example: "+628111222333"
+     *               email:
+     *                 type: string
+     *                 example: "jane.doe@email.com"
+     *     responses:
+     *       200:
+     *         description: Success update contact data
+     *       404:
+     *         description: Contact not found
+     */
     updateData = async (req, res, next) => {
         try {
             const id = req.params.id;
@@ -99,6 +273,25 @@ export class ContactController {
         }
     };
 
+    /**
+     * @swagger
+     * /contact/{id}:
+     *   delete:
+     *     summary: Delete contact
+     *     description: Permanently deletes a contact by ID.
+     *     tags: [Contacts]
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     responses:
+     *       200:
+     *         description: Success delete contact data
+     *       404:
+     *         description: Contact not found
+     */
     deleteData = async (req, res, next) => {
         try {
             const id = req.params.id;
