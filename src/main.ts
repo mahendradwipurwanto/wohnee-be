@@ -4,7 +4,6 @@ import {App} from "./app";
 import {AppDataSource} from "./config/database/datasource";
 import loggerHandler from "./lib/helper/loggerHandler";
 
-// Load environment variables for non-production environments
 if (process.env.NODE_ENV !== "production") {
     dotenv.config();
 }
@@ -15,17 +14,14 @@ async function startServer(): Promise<void> {
 
     const PORT = process.env.PORT || 8080;
     const NODE_ENV = process.env.NODE_ENV || "development";
+    const AUTO_SYNC_DB = process.env.AUTO_SYNC_DB === "true";
 
     try {
-        // Validate critical configuration
         if (!process.env.DATABASE_URL && !AppDataSource.options.database) {
             throw new Error("Missing DATABASE_URL or database config in .env");
         }
 
-        // Trust proxy (important for rate limiter / reverse proxies)
         app.set("trust proxy", 1);
-
-        // Setup Express layers
         mainApp.SetupMiddleware(app);
         mainApp.SetupRoutes(app);
         mainApp.SetupErrorHandling(app);
@@ -35,12 +31,26 @@ async function startServer(): Promise<void> {
         await AppDataSource.initialize();
         loggerHandler.info("✅ Database connected successfully.");
 
-        // Start Express server
+        // Auto create tables if env enabled
+        if (AUTO_SYNC_DB) {
+            loggerHandler.info("🧱 AUTO_SYNC_DB=true → Ensuring tables exist...");
+            await AppDataSource.synchronize();
+            loggerHandler.info("✅ Tables are up to date.");
+        } else {
+            loggerHandler.info("ℹ️ AUTO_SYNC_DB=false → Skipping schema synchronization.");
+        }
+
+        // Auto seed only after sync
+        loggerHandler.info("🌱 Running database seeder...");
+        const {seedDatabase} = await import("./lib/helper/databaseSeeder");
+        await seedDatabase(AppDataSource);
+
+        // Start server
         const server = app.listen(PORT, () => {
             loggerHandler.info(`🚀 Server running on port ${PORT} (${NODE_ENV} mode)`);
         });
 
-        // Graceful shutdown handler
+        // Graceful shutdown
         const shutdown = async (signal: string) => {
             loggerHandler.warn(`⚠️ Received ${signal}, shutting down gracefully...`);
             server.close(async () => {
@@ -55,7 +65,6 @@ async function startServer(): Promise<void> {
                 }
             });
         };
-
         process.on("SIGINT", () => shutdown("SIGINT"));
         process.on("SIGTERM", () => shutdown("SIGTERM"));
     } catch (error: any) {
@@ -64,5 +73,4 @@ async function startServer(): Promise<void> {
     }
 }
 
-// Start app
 startServer();

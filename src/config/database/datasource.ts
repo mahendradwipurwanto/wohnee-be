@@ -20,6 +20,7 @@ dotenv.config();
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 const isProduction = NODE_ENV === "production";
+const shouldAutoSync = process.env.AUTO_SYNC_DB === "true";
 
 // --- Validate required environment variables
 const requiredEnv = ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASS", "DB_NAME"];
@@ -38,7 +39,7 @@ const options: DataSourceOptions & SeederOptions = {
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
     logging: !isProduction && ['query', 'error'], // only log queries in development
-    synchronize: false, // never use true in production
+    synchronize: shouldAutoSync, // never use true in production
     ssl: {rejectUnauthorized: false},
     entities: [EntityOrganization, EntityOrganizationData, EntityRole, EntityProperty, EntityCountries, EntityUnit, EntityDocument, EntityContact, EntityTenant, EntityTenantData, EntityOtp],
     migrations: [resolve(__dirname, "migrations/**/*{.ts,.js}")],
