@@ -25,10 +25,13 @@ const SIGNATURE_TOLERANCE_MINUTES = parseInt(process.env.SIGNATURE_TOLERANCE_MIN
  *   - Replay attacks (timestamp expiration)
  */
 export function VerifyRequestSignature(prefix: string) {// Cache open routes for quick lookup
-    const openRoutes = new Set([
-        `${prefix}/health`,
-        `${prefix}/auth/sign-out`,
-    ]);
+    const openRoutePatterns = [
+        new RegExp(`^${prefix}/health$`),
+        new RegExp(`^${prefix}/auth/sign-out$`),
+        new RegExp(`^${prefix}/docs($|/.*)`),          // ✅ bypass /docs/**
+        new RegExp(`^${prefix}/files/images($|/.*)`),
+        new RegExp(`/favicon\\.ico$`),
+    ];
 
     return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
         try {
@@ -38,14 +41,11 @@ export function VerifyRequestSignature(prefix: string) {// Cache open routes for
                 return next();
             }
 
-            const {path} = req;
+            const fullPath = req.originalUrl.split("?")[0]; // strip query params
 
-            // --- Skip routes that don't require authentication
-            if (
-                openRoutes.has(path) ||
-                path.includes("/files/images") ||
-                path.includes("/favicon.ico")
-            ) {
+            // ✅ Skip any open route or docs pattern
+            if (openRoutePatterns.some((pattern) => pattern.test(fullPath))) {
+                loggerHandler.debug(`[SIGNATURE] 🧩 Bypassed for open route: ${fullPath}`);
                 return next();
             }
 

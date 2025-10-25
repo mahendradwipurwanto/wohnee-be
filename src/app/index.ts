@@ -7,6 +7,9 @@ import {AppDataSource} from "../config/database/datasource";
 import {ErrorHandler} from "../lib/helper/errorHandler";
 import loggerHandler from "../lib/helper/loggerHandler";
 
+import swaggerUi from "swagger-ui-express";
+import {swaggerSpec} from "../config/swagger";
+
 import {VerifyJwtToken} from "./middleware/auth.middleware";
 import {VerifyRequestSignature} from "./middleware/signature.middleware";
 
@@ -135,6 +138,9 @@ export class App {
 
         // --- File Controller
         const fileController = new FilesController();
+
+        // Swagger UI endpoint
+        app.use(`${prefix}/docs/`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
         // --- Route registration
         app.use(`${prefix}/auth`, authController.router);
