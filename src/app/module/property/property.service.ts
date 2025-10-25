@@ -1,4 +1,4 @@
-import {getMetadataArgsStorage, Repository} from "typeorm";
+import {Repository} from "typeorm";
 import MetaPagination from "../../../lib/helper/pagination";
 import {EntityProperty} from "./property.model";
 import {CreatePropertyRequest, UpdatePropertyRequest} from "./property.dto";
@@ -8,8 +8,6 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import "dayjs/locale/id";
 import {EntityOrganizationData} from "../organization/organization-data.model";
-import {EntityOrganization} from "../organization/organization.model";
-import {CustomHttpExceptionError} from "../../../lib/helper/errorHandler";
 import {Property} from "../../../lib/types/data/property";
 
 dayjs.extend(utc);
@@ -148,7 +146,7 @@ export class PropertyService {
             .createQueryBuilder("property")
             .leftJoinAndSelect("property.country", "country") // ✅ load country details automatically
             .where("property.deleted_at IS NULL")
-            .andWhere("property.id = :id", { id })
+            .andWhere("property.id = :id", {id})
             .getOne();
 
         if (!property) return null;
@@ -306,86 +304,6 @@ export class PropertyService {
         // END DYNAMIC PROCESS
 
         return await this.getDetailData(id);
-    }
-
-    async UpdateDataPatch(id: string, data: Record<string, any>) {
-        const queryRunner = this.propertyRepository.manager.connection.createQueryRunner();
-
-        try {
-            // ✅ Ensure connection is established
-            await queryRunner.connect();
-
-            // ✅ Start transaction
-            await queryRunner.startTransaction();
-
-            // --- Fetch organization with related data
-            const organization = await queryRunner.manager.findOne(EntityOrganization, {
-                where: {id},
-                relations: ["organization_data"],
-            });
-
-            if (!organization) {
-                throw new CustomHttpExceptionError(`Organization not found with id ${id}`, 404);
-            }
-
-            // --- Extract dynamic columns
-            const orgColumns = getMetadataArgsStorage()
-                .columns.filter((col) => col.target === EntityOrganization)
-                .map((col) => col.propertyName);
-
-            const orgDataColumns = getMetadataArgsStorage()
-                .columns.filter((col) => col.target === EntityOrganizationData)
-                .map((col) => col.propertyName);
-
-            // --- Separate updates
-            const orgUpdates = Object.fromEntries(
-                Object.entries(data).filter(([key]) => orgColumns.includes(key))
-            );
-
-            const orgDataUpdates = Object.fromEntries(
-                Object.entries(data).filter(([key]) => orgDataColumns.includes(key))
-            );
-
-            // --- Update organization fields
-            Object.assign(organization, orgUpdates);
-
-            // --- Update organization_data fields
-            if (Object.keys(orgDataUpdates).length > 0) {
-                let organizationData = organization.organization_data;
-
-                if (!organizationData) {
-                    organizationData = new EntityOrganizationData();
-                    organizationData.org_id = organization.id;
-                }
-
-                Object.assign(organizationData, orgDataUpdates);
-                await queryRunner.manager.save(EntityOrganizationData, organizationData);
-            }
-
-            await queryRunner.manager.save(EntityOrganization, organization);
-
-            // ✅ Commit only if transaction active
-            if (queryRunner.isTransactionActive) {
-                await queryRunner.commitTransaction();
-            }
-
-            // ✅ Return updated org
-            return await this.getDetailData(id);
-
-        } catch (error) {
-            // ✅ Rollback only if transaction started
-            if (queryRunner.isTransactionActive) {
-                await queryRunner.rollbackTransaction();
-            }
-
-            throw error;
-
-        } finally {
-            // ✅ Always release connection
-            if (!queryRunner.isReleased) {
-                await queryRunner.release();
-            }
-        }
     }
 
     async deleteData(id: string) {

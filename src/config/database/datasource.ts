@@ -8,6 +8,12 @@ import {EntityOrganizationData} from "../../app/module/organization/organization
 import {EntityRole} from "../../app/module/role/role.model";
 import {EntityProperty} from "../../app/module/property/property.model";
 import {EntityCountries} from "../../app/module/countries/countries.model";
+import {EntityUnit} from "../../app/module/unit/unit.model";
+import {EntityDocument} from "../../app/module/document/document.model";
+import {EntityContact} from "../../app/module/contact/contact.model";
+import {EntityTenant} from "../../app/module/tenant/tenant.model";
+import {EntityTenantData} from "../../app/module/tenant/tenant-data.model";
+import {EntityOtp} from "../../app/module/otp/otp.model";
 
 // --- Load environment variables
 dotenv.config();
@@ -34,7 +40,7 @@ const options: DataSourceOptions & SeederOptions = {
     logging: !isProduction && ['query', 'error'], // only log queries in development
     synchronize: false, // never use true in production
     ssl: {rejectUnauthorized: false},
-    entities: [EntityOrganization, EntityOrganizationData, EntityRole, EntityProperty, EntityCountries],
+    entities: [EntityOrganization, EntityOrganizationData, EntityRole, EntityProperty, EntityCountries, EntityUnit, EntityDocument, EntityContact, EntityTenant, EntityTenantData, EntityOtp],
     migrations: [resolve(__dirname, "migrations/**/*{.ts,.js}")],
     migrationsTableName: "typeorm_migrations",
     migrationsRun: false,

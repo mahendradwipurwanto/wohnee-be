@@ -1,31 +1,55 @@
 import {
+    Entity,
     Column,
     CreateDateColumn,
-    Entity,
-    PrimaryGeneratedColumn,
     UpdateDateColumn,
+    PrimaryColumn,
+    BeforeInsert,
+    ManyToOne,
+    JoinColumn,
 } from "typeorm";
+import {v4 as uuidv4} from "uuid";
+import {EntityProperty} from "../property/property.model"; // adjust import path
 
-@Entity('faq')
-export class EntityFaq {
-    @PrimaryGeneratedColumn('uuid')
+@Entity("unit")
+export class EntityUnit {
+    @PrimaryColumn({type: "varchar", length: 36})
     id: string;
 
-    @Column({type: 'varchar', length: 255, nullable: false})
-    faq: string;
+    @BeforeInsert()
+    setId() {
+        if (!this.id) this.id = uuidv4();
+    }
 
-    @Column({type: 'varchar', length: 255, nullable: false})
-    answer: string;
+    // ✅ Relation to Property
+    @Column({type: "varchar", length: 36, nullable: false})
+    property_id: string;
 
-    @Column({type: 'varchar', length: 255, nullable: false})
-    faq_category_id: string;
+    @ManyToOne(() => EntityProperty, {eager: true})
+    @JoinColumn({name: "property_id"})
+    property: EntityProperty;
 
-    @CreateDateColumn({type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', nullable: false})
+    @Column({type: "varchar", length: 100, nullable: false})
+    name: string;
+
+    @Column({type: "int", nullable: true})
+    floor: number | null;
+
+    @Column({type: "int", nullable: true})
+    living_area: number | null;
+
+    @CreateDateColumn({
+        type: "timestamp",
+        default: () => "CURRENT_TIMESTAMP",
+    })
     created_at: Date;
 
-    @UpdateDateColumn({type: 'timestamp', nullable: true})
+    @UpdateDateColumn({
+        type: "timestamp",
+        nullable: true,
+    })
     updated_at: Date | null;
 
-    @Column({type: 'varchar', length: 30, nullable: true, default: null})
-    deleted_at: string | null;
+    @Column({type: "timestamp", nullable: true, default: null})
+    deleted_at: Date | null;
 }
